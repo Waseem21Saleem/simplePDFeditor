@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1e1e1e">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Pro PDF Editor</title>
+    <title>Simple PDF Editor</title>
     
-    <link rel="manifest" href='data:application/manifest+json;utf8,{"name":"Pro PDF Editor","short_name":"ProPDF","display":"standalone","start_url":".","background_color":"#121212","theme_color":"#1e1e1e","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"192\\" height=\\"192\\"><rect width=\\"100%\\" height=\\"100%\\" fill=\\"%23007acc\\"/><text x=\\"50%\\" y=\\"50%\\" font-size=\\"60\\" text-anchor=\\"middle\\" fill=\\"white\\" dy=\\".3em\\" font-family=\\"sans-serif\\">PDF</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+    <link rel="manifest" id="manifest-link">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -16,564 +16,419 @@
     
     <style>
         :root {
-            --bg-color: #121212; --panel-bg: #1e1e1e; --toolbar-bg: #252526;
-            --accent: #007acc; --accent-hover: #0098ff; --text-main: #e0e0e0;
-            --text-muted: #858585; --border: #333333; --danger: #d32f2f;
+            --bg: #121212; --surface: #1e1e1e; --primary: #0a84ff; 
+            --text: #ffffff; --border: #333; --danger: #ff453a;
         }
         
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { margin: 0; background: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; overscroll-behavior-y: none; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 
-        button { background: transparent; color: var(--text-main); border: 1px solid transparent; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; white-space: nowrap; }
-        button:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-        button:disabled { opacity: 0.4; cursor: not-allowed; }
-        button.active { background: rgba(0, 122, 204, 0.2); color: var(--accent-hover); border-color: var(--accent); }
-        button.primary { background: var(--accent); color: white; border: none; }
-        button.primary:hover { background: var(--accent-hover); }
-        button.danger:hover { background: var(--danger); border-color: var(--danger); }
+        /* Touch-Friendly Buttons */
+        button { background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; padding: 8px; min-width: 50px; min-height: 44px; white-space: nowrap; }
+        button:active { background: rgba(255,255,255,0.1); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        button.active { background: rgba(10, 132, 255, 0.2); color: var(--primary); border-color: var(--primary); }
+        button.primary-btn { background: var(--primary); color: white; border: none; padding: 10px 16px; flex-direction: row; gap: 8px; }
         
-        select, input[type="text"], input[type="number"] { background: #3c3c3c; color: white; border: 1px solid var(--border); border-radius: 4px; padding: 4px; font-size: 12px; outline: none; }
-        input[type="color"] { width: 26px; height: 26px; padding: 0; border: none; border-radius: 4px; background: none; cursor: pointer; }
+        input[type="color"] { width: 34px; height: 34px; padding: 0; border: none; border-radius: 6px; background: none; }
+        select { background: #333; color: white; border: none; border-radius: 6px; padding: 8px; font-size: 14px; min-height: 44px; }
 
-        /* Layout */
-        .top-bar { background: var(--toolbar-bg); border-bottom: 1px solid var(--border); padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 100; flex-wrap: wrap; gap: 10px; }
-        .toolbar { background: var(--panel-bg); border-bottom: 1px solid var(--border); padding: 8px 10px; display: flex; gap: 15px; flex-wrap: nowrap; align-items: center; z-index: 90; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .tool-group { display: flex; align-items: center; gap: 5px; border-right: 1px solid var(--border); padding-right: 15px; flex-shrink: 0; }
-        .tool-group:last-child { border-right: none; }
-        .tool-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); position: absolute; top: -14px; left: 0; }
-        .group-wrapper { position: relative; display: flex; align-items: center; gap: 5px; margin-top: 14px; }
+        /* Top Bar */
+        .top-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; flex-shrink: 0; }
+        .page-controls { display: flex; align-items: center; gap: 10px; background: #000; padding: 4px 8px; border-radius: 20px; }
+        .page-controls button { min-height: 36px; min-width: 36px; padding: 0; }
 
-        /* Workspace */
-        #workspace { flex: 1; overflow: auto; background: var(--bg-color); display: flex; justify-content: flex-start; align-items: flex-start; padding: 20px; position: relative; }
-        /* A wrapper to allow centering even when scaled */
-        #centering-container { min-width: 100%; min-height: 100%; display: flex; justify-content: center; align-items: center; }
-        #canvas-wrapper { background: white; box-shadow: 0 8px 30px rgba(0,0,0,0.5); transform-origin: center center; transition: transform 0.15s ease; position: relative; }
+        /* Workspace & Scrolling */
+        #workspace { flex: 1; overflow: auto; background: var(--bg); position: relative; -webkit-overflow-scrolling: touch; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        #canvas-wrapper { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.5); transform-origin: top left; }
 
-        /* Overlays & Modals */
-        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); padding: 20px; }
-        .modal { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
-        .modal h3 { margin: 0 0 5px 0; font-weight: 500; }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
+        /* Bottom Toolbar (Mobile First) */
+        .bottom-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 10px; display: flex; gap: 8px; overflow-x: auto; z-index: 100; flex-shrink: 0; align-items: center; scrollbar-width: none; }
+        .bottom-bar::-webkit-scrollbar { display: none; }
         
-        #sig-canvas-container { border: 1px dashed var(--border); background: #fff; border-radius: 4px; cursor: crosshair; overflow: hidden; touch-action: none; }
+        .divider { width: 1px; height: 30px; background: var(--border); margin: 0 5px; flex-shrink: 0; }
+
+        /* Sub-toolbar for properties */
+        .properties-bar { background: #2a2a2a; padding: 8px 15px; display: none; gap: 15px; align-items: center; overflow-x: auto; flex-shrink: 0; }
+
+        /* Overlays */
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal { background: var(--surface); border-radius: 12px; padding: 20px; width: 100%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; }
+        .modal h3 { margin: 0; font-size: 18px; }
+        .modal input[type="text"] { background: #000; color: white; border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-size: 16px; width: 100%; }
         
-        #loader { display: none; flex-direction: column; gap: 15px; align-items: center; }
-        .spinner { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #sig-container { border: 2px dashed #555; background: white; border-radius: 8px; touch-action: none; overflow: hidden; }
+
+        #loader { display: none; flex-direction: column; align-items: center; gap: 15px; z-index: 2000; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* Mobile tweaks */
-        @media (max-width: 600px) {
-            .hide-mobile { display: none !important; }
-            .top-bar { justify-content: center; }
-            button { padding: 8px; }
-        }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
-        <span style="font-weight: 600; font-size: 16px; color: var(--accent);">📄 Pro PDF</span>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+    <div style="display: flex; gap: 10px;">
         <input type="file" id="upload-pdf" accept="application/pdf" hidden>
-        <button class="primary" onclick="document.getElementById('upload-pdf').click()">📁 Open</button>
-        
-        <div style="display: flex; align-items: center; gap: 5px; background: #111; padding: 4px; border-radius: 6px; border: 1px solid var(--border);">
-            <button onclick="changePage(-1)" id="prev-btn" disabled style="padding: 4px 8px;">◀</button>
-            <span id="page-info" style="font-size: 12px; min-width: 40px; text-align: center;">0 / 0</span>
-            <button onclick="changePage(1)" id="next-btn" disabled style="padding: 4px 8px;">▶</button>
-        </div>
-
-        <button onclick="openExportModal()" class="primary" style="background: #28a745;">💾 Export</button>
+        <button class="primary-btn" onclick="document.getElementById('upload-pdf').click()">
+            <span style="font-size: 18px;">📄</span> Open
+        </button>
     </div>
+
+    <div class="page-controls">
+        <button onclick="changePage(-1)" id="prev-btn" disabled>◀</button>
+        <span id="page-info" style="font-size: 14px; font-weight: bold; min-width: 40px; text-align: center;">0/0</span>
+        <button onclick="changePage(1)" id="next-btn" disabled>▶</button>
+    </div>
+
+    <button class="primary-btn" style="background: #30d158;" onclick="openExportModal()">
+        <span style="font-size: 18px;">💾</span> Save
+    </button>
 </div>
 
-<div class="toolbar">
-    <div class="tool-group">
-        <div class="group-wrapper">
-            <span class="tool-label">Insert</span>
-            <button id="text-btn" onclick="toggleTextMode()" title="Toggle Text Mode">📝 Text</button>
-            <button onclick="addShape('rect')" title="Add Box">⬛</button>
-            <button onclick="addShape('circle')" title="Add Circle">⚫</button>
-            <input type="file" id="upload-img" accept="image/*" hidden onchange="handleImageUpload(event)">
-            <button onclick="document.getElementById('upload-img').click()" title="Add Image">🖼️</button>
-            <button onclick="openSignatureModal()" title="Add Signature">🖋️</button>
-        </div>
-    </div>
-
-    <div class="tool-group">
-        <div class="group-wrapper">
-            <span class="tool-label">Draw</span>
-            <button id="pen-btn" onclick="toggleDraw('pen')">🖊️ Pen</button>
-            <button id="highlighter-btn" onclick="toggleDraw('highlighter')">🖍️ Highlighter</button>
-        </div>
-    </div>
-
-    <div class="tool-group" id="format-tools">
-        <div class="group-wrapper">
-            <span class="tool-label">Style</span>
-            <input type="color" id="colorPicker" value="#000000" title="Color" onchange="updateStyle()">
-            <input type="number" id="sizePicker" value="20" min="1" max="150" title="Size" onchange="updateStyle()" style="width: 45px;">
-            <select id="fontFamily" onchange="updateStyle()" title="Font" style="width: 80px;">
-                <option value="Arial">Arial</option>
-                <option value="Times New Roman">Times</option>
-                <option value="Courier New">Courier</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="tool-group">
-        <div class="group-wrapper">
-            <span class="tool-label">Action</span>
-            <button class="danger" onclick="deleteSelected()" title="Delete">🗑</button>
-            <button onclick="undo()" title="Undo">⟲</button>
-            <button onclick="redo()" title="Redo">⟳</button>
-        </div>
-    </div>
-    
-    <div class="tool-group" style="margin-left: auto;">
-        <div class="group-wrapper">
-            <span class="tool-label">Zoom</span>
-            <button onclick="setZoom(-0.1)">-</button>
-            <span id="zoom-level" style="font-size: 12px; width: 40px; text-align: center;">100%</span>
-            <button onclick="setZoom(0.1)">+</button>
-        </div>
-    </div>
+<div class="properties-bar" id="prop-bar">
+    <input type="color" id="colorPicker" value="#000000" onchange="updateStyle()">
+    <select id="sizePicker" onchange="updateStyle()">
+        <option value="14">Small</option>
+        <option value="22" selected>Medium</option>
+        <option value="36">Large</option>
+        <option value="60">Extra Large</option>
+    </select>
+    <button onclick="deleteSelected()" style="color: var(--danger); font-size: 20px; margin-left: auto;">🗑️</button>
 </div>
 
 <div id="workspace">
-    <div id="centering-container">
-        <div id="canvas-wrapper">
-            <canvas id="main-canvas"></canvas>
-        </div>
+    <div id="canvas-wrapper">
+        <canvas id="main-canvas"></canvas>
     </div>
 </div>
 
-<div class="overlay" id="loader-overlay">
-    <div id="loader">
-        <div class="spinner"></div>
-        <div id="loader-text" style="font-size: 16px; font-weight: 500;">Processing...</div>
-    </div>
+<div class="bottom-bar">
+    <button id="tool-pan" onclick="setTool('pan')" class="active" style="font-size: 20px;">🖐️<span style="font-size: 10px;">Pan</span></button>
+    <div class="divider"></div>
+    <button id="tool-text" onclick="setTool('text')" style="font-size: 20px;">📝<span style="font-size: 10px;">Text</span></button>
+    <button id="tool-pen" onclick="setTool('pen')" style="font-size: 20px;">🖊️<span style="font-size: 10px;">Pen</span></button>
+    <button id="tool-highlighter" onclick="setTool('highlighter')" style="font-size: 20px;">🖍️<span style="font-size: 10px;">Highlight</span></button>
+    <div class="divider"></div>
+    <button onclick="openSignatureModal()" style="font-size: 20px;">🖋️<span style="font-size: 10px;">Sign</span></button>
+    <input type="file" id="upload-img" accept="image/*" hidden onchange="handleImageUpload(event)">
+    <button onclick="document.getElementById('upload-img').click()" style="font-size: 20px;">🖼️<span style="font-size: 10px;">Image</span></button>
+    <div class="divider"></div>
+    <button onclick="setZoom(0.2)" style="font-size: 20px;">🔍+<span style="font-size: 10px;">Zoom In</span></button>
+    <button onclick="setZoom(-0.2)" style="font-size: 20px;">🔍-<span style="font-size: 10px;">Zoom Out</span></button>
 </div>
+
+<div class="overlay" id="loader-overlay"><div id="loader"><div class="spinner"></div><div id="loader-text">Loading...</div></div></div>
 
 <div class="overlay" id="sig-modal">
     <div class="modal">
-        <h3>Sign Here</h3>
-        <div id="sig-canvas-container">
-            <canvas id="sig-canvas" width="350" height="150"></canvas>
-        </div>
-        <div class="modal-footer">
-            <button onclick="clearSignature()">Clear</button>
-            <button onclick="closeModal('sig-modal')">Cancel</button>
-            <button class="primary" onclick="saveSignature()">Insert</button>
+        <h3>Sign Document</h3>
+        <div id="sig-container"><canvas id="sig-canvas" width="300" height="150"></canvas></div>
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <button onclick="clearSignature()" style="color: #aaa;">Clear</button>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeModal('sig-modal')">Cancel</button>
+                <button class="primary-btn" onclick="saveSignature()">Insert</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="overlay" id="export-modal">
     <div class="modal">
-        <h3>Export Options</h3>
-        <label style="font-size: 12px; color: var(--text-muted);">File Name</label>
-        <input type="text" id="export-name" value="Document_Edited" style="width: 100%;">
-        
-        <label style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Format</label>
-        <select id="export-format" style="width: 100%; padding: 6px;">
-            <option value="pdf">PDF (All Pages)</option>
-            <option value="png">PNG Image (Current Page)</option>
-            <option value="jpeg">JPEG Image (Current Page)</option>
+        <h3>Save Document</h3>
+        <input type="text" id="export-name" value="Edited_Document">
+        <select id="export-format" style="width: 100%; margin-top: 10px;">
+            <option value="pdf">Save as PDF</option>
+            <option value="png">Save Page as Image</option>
         </select>
-
-        <div class="modal-footer" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
             <button onclick="closeModal('export-modal')">Cancel</button>
-            <button class="primary" onclick="executeExport()">Save File</button>
+            <button class="primary-btn" onclick="executeExport()">Download</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Setup Service Worker for PWA Offline/Installability ---
-    const swCode = `
-        self.addEventListener('install', e => self.skipWaiting());
-        self.addEventListener('activate', e => self.clients.claim());
-        self.addEventListener('fetch', e => {}); // Pass-through fetch
-    `;
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW setup failed', err));
-    }
+    // --- PWA Setup (Single File Trick) ---
+    const manifest = {
+        name: "Simple PDF Editor", short_name: "PDF Edit", start_url: ".", display: "standalone",
+        background_color: "#121212", theme_color: "#1e1e1e",
+        icons: [{ src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a84ff'/><path d='M30 25h40v50H30z' fill='white'/><path d='M40 40h20m-20 10h20m-20 10h10' stroke='%230a84ff' stroke-width='4' stroke-linecap='round'/></svg>", sizes: "192x192", type: "image/svg+xml" }]
+    };
+    document.getElementById('manifest-link').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
 
-    // --- Core Initial Setup ---
+    const swCode = `self.addEventListener('fetch', e => {});`;
+    navigator.serviceWorker?.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' })));
+
+    // --- Core Setup ---
     const { jsPDF } = window.jspdf;
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    let canvas = new fabric.Canvas('main-canvas', { preserveObjectStacking: true });
+    let canvas = new fabric.Canvas('main-canvas', { preserveObjectStacking: true, selection: false });
     let sigCanvas; 
-    let pdfDoc = null, pageNum = 1, pageRendering = false, pageNumPending = null;
-    let pageStates = {}, stateStacks = {}, redoStacks = {}, isSavingState = false;
-    let currentZoom = 1;
-    let drawMode = 'none'; // 'none', 'pen', 'highlighter'
-    let isTextMode = false;
+    let pdfDoc = null, pageNum = 1, currentZoom = 1;
+    let pageStates = {};
+    let activeTool = 'pan'; // pan, text, pen, highlighter
 
-    // --- Viewport / Zoom Math Helpers ---
-    function updateZoomDisplay() {
-        document.getElementById('canvas-wrapper').style.transform = `scale(${currentZoom})`;
-        document.getElementById('zoom-level').innerText = `${Math.round(currentZoom * 100)}%`;
-    }
-
-    function setZoom(change) {
-        currentZoom = Math.max(0.3, Math.min(3, currentZoom + change));
-        updateZoomDisplay();
-        canvas.calcOffset(); 
-    }
-
-    // Smart Insertion: Finds the center of the visible area on screen
-    function getInsertPosition() {
-        const workspace = document.getElementById('workspace');
-        const wrapper = document.getElementById('canvas-wrapper');
-        const rect = wrapper.getBoundingClientRect();
+    // --- Tool Switching ---
+    function setTool(tool) {
+        activeTool = tool;
+        document.querySelectorAll('.bottom-bar button').forEach(b => b.classList.remove('active'));
+        document.getElementById('tool-' + tool)?.classList.add('active');
         
-        // Find visible center relative to the browser window
-        const visibleCenterX = Math.max(0, workspace.clientWidth) / 2;
-        const visibleCenterY = Math.max(0, workspace.clientHeight) / 2;
-
-        // Map window center to scaled canvas coordinates
-        const xOnCanvas = (visibleCenterX - rect.left) / currentZoom;
-        const yOnCanvas = (visibleCenterY - rect.top) / currentZoom;
-
-        // Ensure we don't drop it out of bounds
-        return {
-            left: Math.max(50, Math.min(xOnCanvas, canvas.width - 50)),
-            top: Math.max(50, Math.min(yOnCanvas, canvas.height - 50))
-        };
+        canvas.isDrawingMode = (tool === 'pen' || tool === 'highlighter');
+        canvas.selection = (tool !== 'pan');
+        
+        if (tool === 'pan') {
+            canvas.defaultCursor = 'grab';
+            document.getElementById('prop-bar').style.display = 'none';
+        } else {
+            canvas.defaultCursor = tool === 'text' ? 'crosshair' : 'default';
+            document.getElementById('prop-bar').style.display = 'flex';
+            updateStyle();
+        }
     }
 
-    // Fix for mouse down selection offsets when transformed
-    canvas.on('mouse:down', function(o) { 
-        if(currentZoom !== 1) canvas.calcOffset(); 
-        
-        // Handle Click-to-Add Text Feature
-        if (isTextMode) {
-            const pointer = canvas.getPointer(o.e);
-            const text = new fabric.IText('Type here...', { 
-                left: pointer.x, top: pointer.y, 
-                fontSize: parseInt(document.getElementById('sizePicker').value), 
-                fill: document.getElementById('colorPicker').value, 
-                fontFamily: document.getElementById('fontFamily').value 
-            });
-            canvas.add(text);
-            canvas.setActiveObject(text);
-            text.enterEditing();
-            text.selectAll();
-            toggleTextMode(); // Turn off text mode automatically
+    // --- Canvas Panning Logic (For mobile scrolling) ---
+    let isDragging = false, lastPosX, lastPosY;
+    canvas.on('mouse:down', function(opt) {
+        if (activeTool === 'pan') {
+            isDragging = true;
+            canvas.defaultCursor = 'grabbing';
+            lastPosX = opt.e.clientX || opt.e.touches?.[0].clientX;
+            lastPosY = opt.e.clientY || opt.e.touches?.[0].clientY;
+        } else if (activeTool === 'text' && !opt.target) {
+            // Text Placement Fallback for Mobile
+            let textValue = prompt("Enter text to insert:");
+            if (textValue) {
+                let pointer = canvas.getPointer(opt.e);
+                let textObj = new fabric.IText(textValue, {
+                    left: pointer.x, top: pointer.y,
+                    fill: document.getElementById('colorPicker').value,
+                    fontSize: parseInt(document.getElementById('sizePicker').value)
+                });
+                canvas.add(textObj);
+                canvas.setActiveObject(textObj);
+                setTool('pan'); // auto switch back to pan
+            }
         }
     });
 
-    // --- PDF Loading ---
+    canvas.on('mouse:move', function(opt) {
+        if (isDragging && activeTool === 'pan') {
+            let e = opt.e;
+            let clientX = e.clientX || e.touches?.[0].clientX;
+            let clientY = e.clientY || e.touches?.[0].clientY;
+            let workspace = document.getElementById('workspace');
+            workspace.scrollLeft -= (clientX - lastPosX);
+            workspace.scrollTop -= (clientY - lastPosY);
+            lastPosX = clientX; lastPosY = clientY;
+        }
+    });
+
+    canvas.on('mouse:up', () => { isDragging = false; if(activeTool === 'pan') canvas.defaultCursor = 'grab'; });
+
+    // Double tap text to edit safely on mobile
+    let lastTap = 0;
+    canvas.on('mouse:down', function(opt) {
+        let currentTime = new Date().getTime();
+        let tapLength = currentTime - lastTap;
+        if (tapLength < 500 && tapLength > 0 && opt.target && opt.target.type === 'i-text') {
+            let newText = prompt("Edit your text:", opt.target.text);
+            if(newText !== null) { opt.target.set('text', newText); canvas.renderAll(); }
+        }
+        lastTap = currentTime;
+    });
+
+    canvas.on('selection:created', () => document.getElementById('prop-bar').style.display = 'flex');
+    canvas.on('selection:cleared', () => { if(activeTool === 'pan') document.getElementById('prop-bar').style.display = 'none'; });
+
+    // --- Document Loading & Auto-Fit ---
     document.getElementById('upload-pdf').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        showLoader('Loading Document...');
-        const reader = new FileReader();
-        reader.onload = async function() {
-            const typedarray = new Uint8Array(this.result);
-            pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
-            pageNum = 1; pageStates = {}; stateStacks = {}; redoStacks = {}; 
-            
-            // Auto-fit zoom based on screen width
-            const sw = window.innerWidth;
-            currentZoom = sw < 600 ? 0.6 : 1; 
-            updateZoomDisplay(); 
-            
-            await renderPage(pageNum);
-            hideLoader();
-        };
-        reader.readAsArrayBuffer(file);
+        showLoader('Loading...');
+        const typedarray = new Uint8Array(await file.arrayBuffer());
+        pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+        pageNum = 1; pageStates = {}; 
+        await renderPage(pageNum, true);
+        hideLoader();
     });
 
-    async function renderPage(num) {
-        pageRendering = true;
+    async function renderPage(num, autoFit = false) {
         const page = await pdfDoc.getPage(num);
-        const viewport = page.getViewport({ scale: 1.5 }); // High-res render
+        const baseViewport = page.getViewport({ scale: 2.0 }); // High res render
         
-        const tempCanvas = document.createElement('canvas');
-        const context = tempCanvas.getContext('2d');
-        tempCanvas.height = viewport.height; tempCanvas.width = viewport.width;
+        // Auto-fit to screen width on first load
+        if (autoFit) {
+            let screenWidth = window.innerWidth - 40; // minus padding
+            currentZoom = screenWidth / baseViewport.width;
+            updateZoomDisplay();
+        }
 
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = baseViewport.width; tempCanvas.height = baseViewport.height;
+        await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: baseViewport }).promise;
 
         canvas.clear();
-        canvas.setDimensions({ width: viewport.width, height: viewport.height });
-        if (!stateStacks[num]) stateStacks[num] = [];
-        if (!redoStacks[num]) redoStacks[num] = [];
+        canvas.setDimensions({ width: baseViewport.width, height: baseViewport.height });
 
         fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
             canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-            if (pageStates[num]) {
-                isSavingState = true;
-                canvas.loadFromJSON(pageStates[num], () => { canvas.renderAll(); isSavingState = false; finishRender(num); });
-            } else {
-                saveState(); finishRender(num);
-            }
+            if (pageStates[num]) canvas.loadFromJSON(pageStates[num], canvas.renderAll.bind(canvas));
         });
-    }
 
-    function finishRender(num) {
-        pageRendering = false;
-        document.getElementById('page-info').textContent = `${num} / ${pdfDoc.numPages}`;
+        document.getElementById('page-info').textContent = `${num}/${pdfDoc.numPages}`;
         document.getElementById('prev-btn').disabled = num <= 1;
         document.getElementById('next-btn').disabled = num >= pdfDoc.numPages;
-        if (pageNumPending !== null) { renderPage(pageNumPending); pageNumPending = null; }
-        canvas.calcOffset();
     }
 
     function changePage(offset) {
         if (!pdfDoc) return;
-        const newPageNum = pageNum + offset;
-        if (newPageNum <= 0 || newPageNum > pdfDoc.numPages) return;
-        pageStates[pageNum] = JSON.stringify(canvas);
-        pageNum = newPageNum;
-        if (pageRendering) pageNumPending = pageNum; else renderPage(pageNum);
-    }
-
-    // --- State Management ---
-    canvas.on('object:added', saveState);
-    canvas.on('object:modified', saveState);
-    canvas.on('object:removed', saveState);
-
-    function saveState() {
-        if (isSavingState || !pdfDoc) return;
-        const json = JSON.stringify(canvas);
-        stateStacks[pageNum].push(json);
-        redoStacks[pageNum] = []; 
-        pageStates[pageNum] = json;
-    }
-
-    function undo() {
-        if (!pdfDoc || stateStacks[pageNum].length <= 1) return;
-        isSavingState = true;
-        redoStacks[pageNum].push(stateStacks[pageNum].pop());
-        const prevState = stateStacks[pageNum][stateStacks[pageNum].length - 1];
-        canvas.loadFromJSON(prevState, () => { canvas.renderAll(); pageStates[pageNum] = prevState; isSavingState = false; });
-    }
-
-    function redo() {
-        if (!pdfDoc || redoStacks[pageNum].length === 0) return;
-        isSavingState = true;
-        const nextState = redoStacks[pageNum].pop();
-        stateStacks[pageNum].push(nextState);
-        canvas.loadFromJSON(nextState, () => { canvas.renderAll(); pageStates[pageNum] = nextState; isSavingState = false; });
-    }
-
-    // --- Insertion Tools ---
-    function toggleTextMode() {
-        if(drawMode !== 'none') toggleDraw('none'); // turn off drawing
-        isTextMode = !isTextMode;
-        document.getElementById('text-btn').classList.toggle('active', isTextMode);
-        canvas.defaultCursor = isTextMode ? 'crosshair' : 'default';
-    }
-
-    function addShape(type) {
-        const pos = getInsertPosition();
-        const color = document.getElementById('colorPicker').value;
-        let obj;
-        if(type === 'rect') obj = new fabric.Rect({ left: pos.left, top: pos.top, fill: color, width: 100, height: 100, originX: 'center', originY: 'center' });
-        else obj = new fabric.Circle({ left: pos.left, top: pos.top, fill: color, radius: 50, originX: 'center', originY: 'center' });
-        canvas.add(obj); canvas.setActiveObject(obj);
-    }
-
-    function handleImageUpload(e) {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = function(f) {
-            fabric.Image.fromURL(f.target.result, (img) => {
-                const pos = getInsertPosition();
-                img.scaleToWidth(200); 
-                img.set({left: pos.left, top: pos.top, originX: 'center', originY: 'center'});
-                canvas.add(img); canvas.setActiveObject(img);
-            });
-        };
-        reader.readAsDataURL(file);
-        e.target.value = ""; 
-    }
-
-    // --- Drawing & Highlighter ---
-    function hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r:0, g:0, b:0 };
-    }
-
-    function toggleDraw(mode) {
-        if(isTextMode) toggleTextMode(); // turn off text
-        
-        drawMode = (drawMode === mode) ? 'none' : mode;
-        canvas.isDrawingMode = (drawMode !== 'none');
-        
-        document.getElementById('pen-btn').classList.toggle('active', drawMode === 'pen');
-        document.getElementById('highlighter-btn').classList.toggle('active', drawMode === 'highlighter');
-        
-        if (canvas.isDrawingMode) updateStyle();
-    }
-
-    // Apply multiply blending so highlighter doesn't cover text
-    canvas.on('path:created', function(opt) {
-        if (drawMode === 'highlighter') {
-            opt.path.globalCompositeOperation = 'multiply';
-            canvas.renderAll();
+        let newPage = pageNum + offset;
+        if (newPage > 0 && newPage <= pdfDoc.numPages) {
+            pageStates[pageNum] = JSON.stringify(canvas);
+            pageNum = newPage;
+            renderPage(pageNum);
         }
+    }
+
+    // --- Zoom Math ---
+    function updateZoomDisplay() {
+        document.getElementById('canvas-wrapper').style.transform = `scale(${currentZoom})`;
+        canvas.calcOffset();
+    }
+    function setZoom(change) {
+        currentZoom = Math.max(0.2, Math.min(4, currentZoom + change));
+        updateZoomDisplay();
+    }
+
+    // Smart Center Insert
+    function getCenter() {
+        let ws = document.getElementById('workspace');
+        let rect = document.getElementById('canvas-wrapper').getBoundingClientRect();
+        return {
+            left: Math.max(50, (ws.clientWidth/2 - rect.left) / currentZoom),
+            top: Math.max(50, (ws.clientHeight/2 - rect.top) / currentZoom)
+        };
+    }
+
+    // --- Styling & Deleting ---
+    function updateStyle() {
+        let color = document.getElementById('colorPicker').value;
+        let size = parseInt(document.getElementById('sizePicker').value);
+        let active = canvas.getActiveObject();
+        
+        if (active && active.type === 'i-text') { active.set({fill: color, fontSize: size}); canvas.renderAll(); }
+        
+        if (activeTool === 'highlighter') {
+            let r = parseInt(color.substr(1,2),16), g = parseInt(color.substr(3,2),16), b = parseInt(color.substr(5,2),16);
+            canvas.freeDrawingBrush.color = `rgba(${r},${g},${b}, 0.3)`;
+            canvas.freeDrawingBrush.width = size * 1.5;
+        } else {
+            canvas.freeDrawingBrush.color = color;
+            canvas.freeDrawingBrush.width = size / 4;
+        }
+    }
+
+    canvas.on('path:created', function(opt) {
+        if (activeTool === 'highlighter') { opt.path.globalCompositeOperation = 'multiply'; canvas.renderAll(); }
     });
 
-    function updateStyle() {
-        const active = canvas.getActiveObject();
-        const color = document.getElementById('colorPicker').value;
-        const size = parseInt(document.getElementById('sizePicker').value);
-        const font = document.getElementById('fontFamily').value;
-        
-        if (active) {
-            if (active.type === 'i-text') active.set({ fill: color, fontSize: size, fontFamily: font });
-            else if (active.type !== 'image') active.set({ fill: color });
-            canvas.renderAll();
-        }
-        
-        if (canvas.isDrawingMode) {
-            if(drawMode === 'highlighter') {
-                const rgb = hexToRgb(color);
-                canvas.freeDrawingBrush.color = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`; // Transparent
-                canvas.freeDrawingBrush.width = Math.max(size, 25); // Thicker default
-            } else {
-                canvas.freeDrawingBrush.color = color; // Solid
-                canvas.freeDrawingBrush.width = size;
-            }
-        }
-    }
-
     function deleteSelected() {
-        const active = canvas.getActiveObjects();
+        let active = canvas.getActiveObjects();
         if (active.length) { canvas.discardActiveObject(); active.forEach(obj => canvas.remove(obj)); }
     }
 
-    // Update toolbar fields when object selected
-    canvas.on('selection:created', syncToolbar);
-    canvas.on('selection:updated', syncToolbar);
-    function syncToolbar() {
-        const active = canvas.getActiveObject();
-        if(active && active.type === 'i-text') {
-            document.getElementById('colorPicker').value = active.fill;
-            document.getElementById('sizePicker').value = active.fontSize;
-            document.getElementById('fontFamily').value = active.fontFamily;
-        }
+    // --- Image & Signature ---
+    function handleImageUpload(e) {
+        let file = e.target.files[0];
+        if(!file) return;
+        let reader = new FileReader();
+        reader.onload = function(f) {
+            fabric.Image.fromURL(f.target.result, (img) => {
+                let center = getCenter();
+                img.scaleToWidth(150); img.set({left: center.left, top: center.top, originX: 'center', originY: 'center'});
+                canvas.add(img); canvas.setActiveObject(img); setTool('pan');
+            });
+        };
+        reader.readAsDataURL(file); e.target.value = "";
     }
 
-    // --- Overlays & Modals ---
-    function showLoader(msg) { document.getElementById('loader-overlay').style.display = 'flex'; document.getElementById('loader').style.display = 'flex'; document.getElementById('loader-text').innerText = msg; }
-    function hideLoader() { document.getElementById('loader-overlay').style.display = 'none'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-    // --- Signature ---
     function openSignatureModal() {
         document.getElementById('sig-modal').style.display = 'flex';
         if(!sigCanvas) {
             sigCanvas = new fabric.Canvas('sig-canvas', { isDrawingMode: true });
             sigCanvas.freeDrawingBrush.width = 3;
-            sigCanvas.freeDrawingBrush.color = '#000000';
-            
-            // Prevent scrolling on mobile while signing
-            const cont = document.getElementById('sig-canvas-container');
-            cont.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+            // Prevent scrolling while signing
+            document.getElementById('sig-container').addEventListener('touchmove', e => e.preventDefault(), {passive: false});
         }
         sigCanvas.clear();
     }
     function clearSignature() { if(sigCanvas) sigCanvas.clear(); }
     function saveSignature() {
         if(sigCanvas.getObjects().length === 0) return closeModal('sig-modal');
-        const dataURL = sigCanvas.toDataURL('image/png');
-        fabric.Image.fromURL(dataURL, (img) => {
-            const pos = getInsertPosition();
-            img.set({ left: pos.left, top: pos.top, originX: 'center', originY: 'center' });
-            
-            // Crop transparent boundaries
-            let minX = sigCanvas.width, minY = sigCanvas.height, maxX = 0, maxY = 0;
-            sigCanvas.getObjects().forEach(obj => {
-                const br = obj.getBoundingRect();
-                if(br.left < minX) minX = br.left; if(br.top < minY) minY = br.top;
-                if(br.left + br.width > maxX) maxX = br.left + br.width; if(br.top + br.height > maxY) maxY = br.top + br.height;
-            });
-            img.set({ cropX: Math.max(0, minX-5), cropY: Math.max(0, minY-5), width: maxX-minX+10, height: maxY-minY+10 });
-            
-            canvas.add(img); canvas.setActiveObject(img);
+        fabric.Image.fromURL(sigCanvas.toDataURL('image/png'), (img) => {
+            let center = getCenter();
+            img.set({left: center.left, top: center.top, originX: 'center', originY: 'center'});
+            canvas.add(img); canvas.setActiveObject(img); setTool('pan');
             closeModal('sig-modal');
         });
     }
 
-    // --- Exporting ---
-    function openExportModal() {
-        if(!pdfDoc) return alert("Please open a PDF first.");
-        document.getElementById('export-modal').style.display = 'flex';
-    }
+    // --- Safe Mobile Exporting ---
+    function openExportModal() { if(pdfDoc) document.getElementById('export-modal').style.display = 'flex'; else alert("Open a PDF first!"); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function showLoader(text) { document.getElementById('loader-overlay').style.display='flex'; document.getElementById('loader').style.display='flex'; document.getElementById('loader-text').innerText=text; }
+    function hideLoader() { document.getElementById('loader-overlay').style.display='none'; }
 
     async function executeExport() {
         closeModal('export-modal');
-        const fileName = document.getElementById('export-name').value || 'Document';
-        const format = document.getElementById('export-format').value;
-        showLoader('Generating File...');
+        showLoader('Saving file...');
+        let name = document.getElementById('export-name').value || 'Edited_Document';
+        let format = document.getElementById('export-format').value;
 
-        // Allow UI to update before heavy processing
         setTimeout(async () => {
-            if (format === 'png' || format === 'jpeg') {
-                const link = document.createElement('a');
-                link.download = `${fileName}.${format}`;
-                link.href = canvas.toDataURL({ format: format, quality: 1 });
-                link.click();
+            if (format === 'png') {
+                let a = document.createElement('a');
+                a.href = canvas.toDataURL({format: 'png', quality: 1});
+                a.download = name + '.png'; a.click();
             } else {
-                pageStates[pageNum] = JSON.stringify(canvas); 
+                pageStates[pageNum] = JSON.stringify(canvas);
                 let newPdf = null;
-
                 for (let i = 1; i <= pdfDoc.numPages; i++) {
                     const page = await pdfDoc.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.5 });
-                    
+                    const viewport = page.getViewport({ scale: 2.0 });
                     const tempCanvas = document.createElement('canvas');
-                    const ctx = tempCanvas.getContext('2d');
                     tempCanvas.height = viewport.height; tempCanvas.width = viewport.width;
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: viewport }).promise;
 
                     const staticCanvas = new fabric.StaticCanvas(null, { width: viewport.width, height: viewport.height });
-                    await new Promise(resolve => {
-                        fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
-                            staticCanvas.setBackgroundImage(img, staticCanvas.renderAll.bind(staticCanvas));
-                            if (pageStates[i]) {
-                                staticCanvas.loadFromJSON(pageStates[i], () => { staticCanvas.renderAll(); resolve(); });
-                            } else resolve();
+                    await new Promise(r => fabric.Image.fromURL(tempCanvas.toDataURL(), img => {
+                        staticCanvas.setBackgroundImage(img, () => {
+                            if (pageStates[i]) staticCanvas.loadFromJSON(pageStates[i], () => { staticCanvas.renderAll(); r(); });
+                            else r();
                         });
-                    });
+                    }));
 
-                    const imgData = staticCanvas.toDataURL({ format: 'jpeg', quality: 1.0 });
-                    const orientation = viewport.width > viewport.height ? 'l' : 'p';
-                    
-                    if (i === 1) newPdf = new jsPDF({ orientation: orientation, unit: 'px', format: [viewport.width, viewport.height] });
-                    else newPdf.addPage([viewport.width, viewport.height], orientation);
-                    
+                    let imgData = staticCanvas.toDataURL('image/jpeg', 0.8); // 0.8 saves RAM on mobile
+                    let orient = viewport.width > viewport.height ? 'l' : 'p';
+                    if (i === 1) newPdf = new jsPDF({ orientation: orient, unit: 'px', format: [viewport.width, viewport.height] });
+                    else newPdf.addPage([viewport.width, viewport.height], orient);
                     newPdf.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
                 }
-                newPdf.save(`${fileName}.pdf`);
+                
+                // Safe Blob Download for iOS and Android compatibility
+                let blob = newPdf.output('blob');
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url; a.download = name + '.pdf';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 500);
             }
             hideLoader();
-        }, 100);
+        }, 50);
     }
-
-    // --- Hotkeys ---
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
-        if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            if(!canvas.getActiveObject()?.isEditing) deleteSelected();
-        }
-    });
 </script>
-
 </body>
-
 </html>
