@@ -97,10 +97,8 @@ function setTool(tool) {
     
     if (tool === 'pan') {
         canvas.defaultCursor = 'grab';
-        document.getElementById('prop-bar').classList.add('hidden');
     } else {
         canvas.defaultCursor = tool === 'text' ? 'text' : 'default';
-        document.getElementById('prop-bar').classList.remove('hidden');
         updateStyle();
     }
 }
@@ -115,7 +113,7 @@ workspace.addEventListener('touchstart', (e) => {
 });
 workspace.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2 && initialPinchDistance) {
-        e.preventDefault(); // Stop normal scrolling while pinching
+        e.preventDefault(); 
         let currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         let scaleChange = currentDistance / initialPinchDistance;
         setZoom(scaleChange > 1 ? 0.05 : -0.05); 
@@ -158,16 +156,14 @@ canvas.on('mouse:move', function(opt) {
 });
 canvas.on('mouse:up', () => { isDragging = false; if(activeTool === 'pan') canvas.defaultCursor = 'grab'; });
 
-// Keep properties bar visible while editing text
+// Keep tool synced to object selected
 canvas.on('selection:created', syncToolbar);
 canvas.on('selection:updated', syncToolbar);
 canvas.on('text:editing:entered', syncToolbar);
-canvas.on('selection:cleared', () => { if(activeTool === 'pan') document.getElementById('prop-bar').classList.add('hidden'); });
 
 function syncToolbar() {
     let active = canvas.getActiveObject();
     if(active && active.type === 'i-text') {
-        document.getElementById('prop-bar').classList.remove('hidden');
         document.getElementById('colorPicker').value = active.fill;
         document.getElementById('sizePicker').value = active.fontSize;
         document.getElementById('fontFamily').value = active.fontFamily;
@@ -333,19 +329,17 @@ async function renderOrganizeGrid() {
     
     for(let i=0; i < orgPageArray.length; i++) {
         const page = await orgPdfJsDoc.getPage(orgPageArray[i] + 1);
-        const viewport = page.getViewport({ scale: 0.3 }); // Thumb res
-        const fullViewport = page.getViewport({ scale: 1.0 }); // Hover preview res
+        const viewport = page.getViewport({ scale: 0.3 }); 
+        const fullViewport = page.getViewport({ scale: 1.0 }); 
         
         const wrap = document.createElement('div');
         wrap.className = 'thumb-group relative bg-slate-800 p-2 rounded-lg border border-slate-700 flex flex-col items-center gap-2';
         
-        // Main Thumb
         const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.className = 'border border-slate-900 peer'; // 'peer' triggers the preview box hover
+        thumbCanvas.className = 'border border-slate-900 peer'; 
         thumbCanvas.height = viewport.height; thumbCanvas.width = viewport.width;
         await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
         
-        // Large Hover Preview
         const previewBox = document.createElement('div');
         previewBox.className = 'preview-box bg-slate-800 p-2 border border-slate-600 rounded-lg';
         const previewCanvas = document.createElement('canvas');
@@ -356,7 +350,7 @@ async function renderOrganizeGrid() {
         
         wrap.innerHTML = `<div class="absolute -top-3 -left-3 bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow">${i+1}</div>`;
         wrap.appendChild(thumbCanvas);
-        wrap.appendChild(previewBox); // The hidden preview
+        wrap.appendChild(previewBox); 
         
         const controls = document.createElement('div'); controls.className = 'flex gap-2 w-full justify-center';
         controls.innerHTML = `
@@ -436,7 +430,6 @@ async function exportMergedPDF(filename) {
     hideLoader();
 }
 
-// Split logic (Select pages to extract)
 let splitSelectedPages = new Set();
 document.getElementById('upload-split').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
