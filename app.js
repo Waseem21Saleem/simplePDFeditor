@@ -3,27 +3,23 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
 }
 
-// --- PWA Installation Logic ---
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); deferredPrompt = e;
-    document.getElementById('install-btn').classList.remove('hidden');
-});
+// --- App State & Navigation ---
+let isDirty = false;
 
-document.getElementById('install-btn').addEventListener('click', async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    // Fallback info modal for iOS or browsers that prevent automatic prompting
-    if (isIOS || !deferredPrompt) {
-        document.getElementById('ios-install-modal').classList.remove('hidden');
-    } else if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') document.getElementById('install-btn').classList.add('hidden');
-        deferredPrompt = null;
+function attemptNavHome() {
+    if (isDirty) {
+        document.getElementById('unsaved-modal').classList.remove('hidden');
+    } else {
+        navTo('home');
     }
-});
+}
 
-// --- UI Navigation ---
+function confirmNavHome() {
+    closeModal('unsaved-modal');
+    isDirty = false;
+    navTo('home');
+}
+
 function navTo(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId + '-screen').classList.remove('hidden');
@@ -48,13 +44,13 @@ function navTo(screenId) {
         if (pdfDoc) updateZoomDisplay();
     } else if (screenId === 'organize') {
         title.innerText = 'Organize Pages';
-        actions.innerHTML = `<button onclick="openSaveModal('organize')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Save PDF</button>`;
+        actions.innerHTML = `<button onclick="openSaveModal('organize')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Save</button>`;
     } else if (screenId === 'merge') {
         title.innerText = 'Merge PDFs';
-        actions.innerHTML = `<button onclick="document.getElementById('upload-merge').click()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-sm font-medium">➕ Add</button><button onclick="openSaveModal('merge')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Merge & Save</button>`;
+        actions.innerHTML = `<button onclick="document.getElementById('upload-merge').click()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-sm font-medium">➕ Add</button><button onclick="openSaveModal('merge')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Merge</button>`;
     } else if (screenId === 'split') {
         title.innerText = 'Extract Pages';
-        actions.innerHTML = `<button onclick="openSaveModal('split')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Extract PDF</button>`;
+        actions.innerHTML = `<button onclick="openSaveModal('split')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Extract</button>`;
     }
 }
 
@@ -77,9 +73,8 @@ function openSaveModal(action) {
     };
 }
 
-
 // ==========================================
-// MODULE 1: PDF EDITOR (Fabric + Pinch Zoom)
+// MODULE 1: PDF EDITOR
 // ==========================================
 const { jsPDF } = window.jspdf;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -87,6 +82,15 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let canvas = new fabric.Canvas('main-canvas', { preserveObjectStacking: true, selection: false });
 let sigCanvas, pdfDoc = null, pageNum = 1, currentZoom = 1;
 let pageStates = {}, activeTool = 'pan';
+
+// Dirty Flagging for Canvas edits
+canvas.on('object:added', () => isDirty = true);
+canvas.on('object:modified', () => isDirty = true);
+canvas.on('object:removed', () => isDirty = true);
+canvas.on('path:created', function(opt) { 
+    isDirty = true;
+    if (activeTool === 'highlighter') { opt.path.globalCompositeOperation = 'multiply'; canvas.renderAll(); } 
+});
 
 function setTool(tool) {
     activeTool = tool;
@@ -100,13 +104,10 @@ function setTool(tool) {
     updateStyle();
 }
 
-// Pinch to zoom logic
 let initialPinchDistance = null;
 const workspace = document.getElementById('workspace');
 workspace.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 2) {
-        initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-    }
+    if (e.touches.length === 2) initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
 });
 workspace.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2 && initialPinchDistance) {
@@ -119,7 +120,6 @@ workspace.addEventListener('touchmove', (e) => {
 }, { passive: false });
 workspace.addEventListener('touchend', () => initialPinchDistance = null);
 
-// Text Click-To-Type
 canvas.on('mouse:down', function(opt) {
     if (activeTool === 'pan' && !opt.e.touches || (opt.e.touches && opt.e.touches.length === 1)) {
         isDragging = true;
@@ -153,7 +153,6 @@ canvas.on('mouse:move', function(opt) {
 });
 canvas.on('mouse:up', () => { isDragging = false; if(activeTool === 'pan') canvas.defaultCursor = 'grab'; });
 
-// Keep tool synced to object selected
 canvas.on('selection:created', syncToolbar);
 canvas.on('selection:updated', syncToolbar);
 canvas.on('text:editing:entered', syncToolbar);
@@ -171,7 +170,7 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
     showLoader('Loading...');
     pdfDoc = await pdfjsLib.getDocument(new Uint8Array(await file.arrayBuffer())).promise;
-    pageNum = 1; pageStates = {}; 
+    pageNum = 1; pageStates = {}; isDirty = false;
     await renderPage(pageNum, true);
     hideLoader();
 });
@@ -189,7 +188,7 @@ async function renderPage(num, autoFit = false) {
     fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
         if (pageStates[num]) canvas.loadFromJSON(pageStates[num], canvas.renderAll.bind(canvas));
-        updateZoomDisplay(); // Call here to ensure bounds are set AFTER render
+        updateZoomDisplay(); 
     });
 
     document.getElementById('page-info').textContent = `${num}/${pdfDoc.numPages}`;
@@ -205,13 +204,10 @@ function changePage(offset) {
     }
 }
 
-// The Fix for Mobile Zoom Scrolling boundaries
 function updateZoomDisplay() {
     const wrapper = document.getElementById('canvas-wrapper');
     const spacer = document.getElementById('scroll-spacer');
-    
     wrapper.style.transform = `scale(${currentZoom})`;
-    
     if (canvas) {
         spacer.style.width = `${canvas.width * currentZoom}px`;
         spacer.style.height = `${canvas.height * currentZoom}px`;
@@ -227,7 +223,7 @@ function updateStyle() {
     let font = document.getElementById('fontFamily').value;
     let active = canvas.getActiveObject();
     
-    if (active && active.type === 'i-text') { active.set({fill: color, fontSize: size, fontFamily: font}); canvas.renderAll(); }
+    if (active && active.type === 'i-text') { active.set({fill: color, fontSize: size, fontFamily: font}); canvas.renderAll(); isDirty = true; }
     
     if (activeTool === 'highlighter') {
         let r = parseInt(color.substr(1,2),16), g = parseInt(color.substr(3,2),16), b = parseInt(color.substr(5,2),16);
@@ -238,8 +234,8 @@ function updateStyle() {
         canvas.freeDrawingBrush.width = size / 4;
     }
 }
-canvas.on('path:created', function(opt) { if (activeTool === 'highlighter') { opt.path.globalCompositeOperation = 'multiply'; canvas.renderAll(); } });
-function deleteSelected() { let active = canvas.getActiveObjects(); if (active.length) { canvas.discardActiveObject(); active.forEach(obj => canvas.remove(obj)); } }
+
+function deleteSelected() { let active = canvas.getActiveObjects(); if (active.length) { canvas.discardActiveObject(); active.forEach(obj => canvas.remove(obj)); isDirty = true; } }
 
 function handleImageUpload(e) {
     let file = e.target.files[0]; if(!file) return;
@@ -247,7 +243,7 @@ function handleImageUpload(e) {
     reader.onload = function(f) {
         fabric.Image.fromURL(f.target.result, (img) => {
             img.scaleToWidth(200); img.set({left: canvas.width/2, top: canvas.height/2, originX: 'center', originY: 'center'});
-            canvas.add(img); canvas.setActiveObject(img); setTool('pan');
+            canvas.add(img); canvas.setActiveObject(img); setTool('pan'); isDirty = true;
         });
     };
     reader.readAsDataURL(file); e.target.value = "";
@@ -266,7 +262,7 @@ function saveSignature() {
     if(sigCanvas.getObjects().length === 0) return closeModal('sig-modal');
     fabric.Image.fromURL(sigCanvas.toDataURL('image/png'), (img) => {
         img.set({left: canvas.width/2, top: canvas.height/2, originX: 'center', originY: 'center'});
-        canvas.add(img); canvas.setActiveObject(img); setTool('pan');
+        canvas.add(img); canvas.setActiveObject(img); setTool('pan'); isDirty = true;
         closeModal('sig-modal');
     });
 }
@@ -310,6 +306,7 @@ async function executeExport() {
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(url), 500);
         }
+        isDirty = false;
         hideLoader();
     }, 50);
 }
@@ -323,6 +320,7 @@ document.getElementById('upload-org').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
     showLoader('Processing Pages...');
     document.getElementById('org-upload-box').classList.add('hidden');
+    isDirty = false;
     
     const arrayBuffer = await file.arrayBuffer();
     orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
@@ -373,10 +371,12 @@ async function renderOrganizeGrid() {
 function movePage(index, dir) {
     if(index + dir < 0 || index + dir >= orgPageArray.length) return;
     const temp = orgPageArray[index]; orgPageArray[index] = orgPageArray[index + dir]; orgPageArray[index + dir] = temp;
+    isDirty = true;
     renderOrganizeGrid();
 }
 function deletePage(index) {
     orgPageArray.splice(index, 1);
+    isDirty = true;
     if(orgPageArray.length === 0) {
         document.getElementById('org-upload-box').classList.remove('hidden');
         document.getElementById('thumbnail-grid').innerHTML = ''; orgPdfDoc = null;
@@ -390,6 +390,7 @@ async function exportOrganizedPDF(filename) {
     const copiedPages = await newPdf.copyPages(orgPdfDoc, orgPageArray);
     copiedPages.forEach(p => newPdf.addPage(p));
     triggerDownload(await newPdf.save(), filename + '.pdf');
+    isDirty = false;
     hideLoader();
 }
 
@@ -399,6 +400,7 @@ async function exportOrganizedPDF(filename) {
 let mergeFiles = [];
 document.getElementById('upload-merge').addEventListener('change', (e) => {
     mergeFiles = mergeFiles.concat(Array.from(e.target.files));
+    isDirty = true;
     renderMergeList();
 });
 
@@ -419,9 +421,10 @@ function renderMergeList() {
 function moveMergeFile(index, dir) {
     if(index + dir < 0 || index + dir >= mergeFiles.length) return;
     const temp = mergeFiles[index]; mergeFiles[index] = mergeFiles[index + dir]; mergeFiles[index + dir] = temp;
+    isDirty = true;
     renderMergeList();
 }
-function removeMergeFile(index) { mergeFiles.splice(index, 1); renderMergeList(); }
+function removeMergeFile(index) { mergeFiles.splice(index, 1); isDirty = true; renderMergeList(); }
 
 async function exportMergedPDF(filename) {
     if(mergeFiles.length < 2) return alert("Select at least 2 PDFs!");
@@ -434,6 +437,7 @@ async function exportMergedPDF(filename) {
             copiedPages.forEach(p => mergedPdf.addPage(p));
         }
         triggerDownload(await mergedPdf.save(), filename + '.pdf');
+        isDirty = false;
     } catch (e) { alert("Error merging files."); }
     hideLoader();
 }
@@ -443,6 +447,7 @@ document.getElementById('upload-split').addEventListener('change', async (e) => 
     const file = e.target.files[0]; if (!file) return;
     showLoader('Processing...');
     document.getElementById('split-upload-box').classList.add('hidden');
+    isDirty = false;
     const arrayBuffer = await file.arrayBuffer();
     orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
     orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
@@ -452,10 +457,12 @@ document.getElementById('upload-split').addEventListener('change', async (e) => 
     for(let i=0; i < orgPdfJsDoc.numPages; i++) {
         const page = await orgPdfJsDoc.getPage(i + 1);
         const viewport = page.getViewport({ scale: 0.3 });
+        const fullViewport = page.getViewport({ scale: 1.0 });
         
         const wrap = document.createElement('div');
-        wrap.className = 'cursor-pointer border-4 border-transparent rounded-lg transition-colors p-1 bg-slate-800';
+        wrap.className = 'thumb-group cursor-pointer border-4 border-transparent rounded-lg transition-colors p-1 bg-slate-800 relative';
         wrap.onclick = () => {
+            isDirty = true;
             if(splitSelectedPages.has(i)) { splitSelectedPages.delete(i); wrap.classList.remove('border-blue-500'); }
             else { splitSelectedPages.add(i); wrap.classList.add('border-blue-500'); }
         };
@@ -464,8 +471,19 @@ document.getElementById('upload-split').addEventListener('change', async (e) => 
         thumbCanvas.height = viewport.height; thumbCanvas.width = viewport.width;
         await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
         
+        // Split Quick Preview
+        const previewBox = document.createElement('div');
+        previewBox.className = 'preview-box p-3 border-4 border-slate-600 rounded-2xl';
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.className = 'max-w-[85vw] max-h-[70vh] object-contain bg-white';
+        previewCanvas.height = fullViewport.height; previewCanvas.width = fullViewport.width;
+        page.render({ canvasContext: previewCanvas.getContext('2d'), viewport: fullViewport });
+        previewBox.appendChild(previewCanvas);
+
         wrap.innerHTML = `<div class="text-center text-xs font-bold text-slate-400 mb-1">Page ${i+1}</div>`;
-        wrap.appendChild(thumbCanvas); grid.appendChild(wrap);
+        wrap.appendChild(thumbCanvas); 
+        wrap.appendChild(previewBox);
+        grid.appendChild(wrap);
     }
     hideLoader();
 });
@@ -478,6 +496,7 @@ async function exportSplitPDF(filename) {
     const copiedPages = await newPdf.copyPages(orgPdfDoc, sortedSelected);
     copiedPages.forEach(p => newPdf.addPage(p));
     triggerDownload(await newPdf.save(), filename + '.pdf');
+    isDirty = false;
     hideLoader();
 }
 
