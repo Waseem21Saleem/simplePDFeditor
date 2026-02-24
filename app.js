@@ -169,6 +169,11 @@ function syncToolbar() {
 document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
     showLoader('Loading...');
+    
+    // Hide Placeholder, Show Canvas
+    document.getElementById('editor-placeholder').classList.add('hidden');
+    document.getElementById('canvas-wrapper').classList.remove('hidden');
+
     pdfDoc = await pdfjsLib.getDocument(new Uint8Array(await file.arrayBuffer())).promise;
     pageNum = 1; pageStates = {}; isDirty = false;
     await renderPage(pageNum, true);

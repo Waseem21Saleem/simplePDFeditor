@@ -27,7 +27,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Centered Quick View Hover Setup */
         .thumb-group .preview-box { 
             display: none; position: fixed; z-index: 200; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             box-shadow: 0 20px 60px rgba(0,0,0,0.9); pointer-events: none; border-radius: 12px; overflow: hidden; background: white;
@@ -37,7 +36,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 h-[100dvh] w-screen flex flex-col overflow-hidden font-sans">
 
-    <div id="home-screen" class="screen flex flex-col h-full overflow-y-auto items-center p-6 w-full">
+    <div id="home-screen" class="screen flex flex-col flex-1 min-h-0 overflow-y-auto items-center p-6 w-full">
         <div class="w-full max-w-4xl flex justify-between items-center mb-8 pt-4">
             <h1 class="text-3xl font-bold text-blue-500 flex items-center gap-3">
                 <img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" alt="Logo" class="w-10 h-10 drop-shadow-md">
@@ -72,7 +71,7 @@
         <div class="flex items-center gap-2" id="header-actions"></div>
     </div>
 
-    <div id="editor-screen" class="screen hidden flex-col flex-1 h-full relative w-full overflow-hidden">
+    <div id="editor-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
         <div id="prop-bar" class="bg-slate-850 p-2 border-b border-slate-700 flex items-center gap-3 overflow-x-auto no-scrollbar shrink-0 w-full z-40">
             <input type="color" id="colorPicker" value="#000000" class="w-8 h-8 rounded cursor-pointer border-none bg-transparent shrink-0" onchange="updateStyle()">
             <input type="number" id="sizePicker" value="20" min="1" max="150" class="w-16 bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none shrink-0" oninput="updateStyle()" placeholder="Size">
@@ -84,9 +83,16 @@
             <button onclick="deleteSelected()" class="ml-auto text-red-400 hover:text-red-300 p-1 text-xl shrink-0">🗑️</button>
         </div>
 
-        <div id="workspace" class="flex-1 overflow-auto bg-slate-900 p-4 relative touch-pan-x touch-pan-y w-full h-full">
+        <div id="workspace" class="flex-1 overflow-auto min-h-0 bg-slate-900 p-4 relative touch-pan-x touch-pan-y w-full">
+            <div id="editor-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none z-10">
+                <div class="text-5xl mb-4">📄</div>
+                <p>Open a PDF to start editing</p>
+            </div>
+
             <div id="scroll-spacer" class="relative mx-auto transition-all duration-75">
-                <div id="canvas-wrapper" class="bg-white shadow-2xl origin-top-left absolute top-0 left-0"><canvas id="main-canvas"></canvas></div>
+                <div id="canvas-wrapper" class="hidden bg-white shadow-2xl origin-top-left absolute top-0 left-0">
+                    <canvas id="main-canvas"></canvas>
+                </div>
             </div>
         </div>
 
@@ -121,8 +127,8 @@
         </div>
     </div>
 
-    <div id="organize-screen" class="screen hidden flex-col flex-1 h-full w-full overflow-hidden">
-        <div class="flex-1 overflow-y-auto p-6 w-full h-full">
+    <div id="organize-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
+        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
             <div class="max-w-5xl mx-auto flex flex-col items-center">
                 <div id="org-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-org').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
@@ -133,8 +139,8 @@
         </div>
     </div>
 
-    <div id="merge-screen" class="screen hidden flex-col flex-1 h-full w-full overflow-hidden">
-        <div class="flex-1 overflow-y-auto p-6 w-full h-full">
+    <div id="merge-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
+        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
             <div class="max-w-5xl mx-auto flex flex-col items-center">
                 <div class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors mb-6" onclick="document.getElementById('upload-merge').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
@@ -145,8 +151,8 @@
         </div>
     </div>
 
-    <div id="split-screen" class="screen hidden flex-col flex-1 h-full w-full overflow-hidden">
-        <div class="flex-1 overflow-y-auto p-6 w-full h-full">
+    <div id="split-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
+        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
             <div class="max-w-5xl mx-auto flex flex-col items-center">
                 <div id="split-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-split').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
@@ -214,6 +220,15 @@
                     <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Insert Signature</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="ios-install-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-end justify-center sm:items-center p-4 pb-10">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl mb-4">📲</div>
+            <h3 class="text-xl font-bold mb-2">Install App on Phone</h3>
+            <p class="text-slate-400 mb-6">Tap the <b>Share / Options</b> menu in your browser, then scroll down and select <b>"Add to Home Screen"</b> to install the app.</p>
+            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Got it</button>
         </div>
     </div>
 
