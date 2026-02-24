@@ -12,7 +12,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 document.getElementById('install-btn').addEventListener('click', async () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (isIOS) {
+    // Fallback info modal for iOS or browsers that prevent automatic prompting
+    if (isIOS || !deferredPrompt) {
         document.getElementById('ios-install-modal').classList.remove('hidden');
     } else if (deferredPrompt) {
         deferredPrompt.prompt();
@@ -94,13 +95,9 @@ function setTool(tool) {
     
     canvas.isDrawingMode = (tool === 'pen' || tool === 'highlighter');
     canvas.selection = (tool !== 'pan');
+    canvas.defaultCursor = tool === 'pan' ? 'grab' : (tool === 'text' ? 'text' : 'default');
     
-    if (tool === 'pan') {
-        canvas.defaultCursor = 'grab';
-    } else {
-        canvas.defaultCursor = tool === 'text' ? 'text' : 'default';
-        updateStyle();
-    }
+    updateStyle();
 }
 
 // Pinch to zoom logic
@@ -182,7 +179,7 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
 async function renderPage(num, autoFit = false) {
     const page = await pdfDoc.getPage(num);
     const baseViewport = page.getViewport({ scale: 2.0 }); 
-    if (autoFit) { currentZoom = (window.innerWidth - 40) / baseViewport.width; updateZoomDisplay(); }
+    if (autoFit) { currentZoom = (window.innerWidth - 40) / baseViewport.width; }
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = baseViewport.width; tempCanvas.height = baseViewport.height;
@@ -192,6 +189,7 @@ async function renderPage(num, autoFit = false) {
     fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
         if (pageStates[num]) canvas.loadFromJSON(pageStates[num], canvas.renderAll.bind(canvas));
+        updateZoomDisplay(); // Call here to ensure bounds are set AFTER render
     });
 
     document.getElementById('page-info').textContent = `${num}/${pdfDoc.numPages}`;
@@ -207,10 +205,20 @@ function changePage(offset) {
     }
 }
 
+// The Fix for Mobile Zoom Scrolling boundaries
 function updateZoomDisplay() {
-    document.getElementById('canvas-wrapper').style.transform = `scale(${currentZoom})`;
+    const wrapper = document.getElementById('canvas-wrapper');
+    const spacer = document.getElementById('scroll-spacer');
+    
+    wrapper.style.transform = `scale(${currentZoom})`;
+    
+    if (canvas) {
+        spacer.style.width = `${canvas.width * currentZoom}px`;
+        spacer.style.height = `${canvas.height * currentZoom}px`;
+    }
     canvas.calcOffset();
 }
+
 function setZoom(change) { currentZoom = Math.max(0.2, Math.min(4, currentZoom + change)); updateZoomDisplay(); }
 
 function updateStyle() {
@@ -341,9 +349,9 @@ async function renderOrganizeGrid() {
         await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
         
         const previewBox = document.createElement('div');
-        previewBox.className = 'preview-box bg-slate-800 p-2 border border-slate-600 rounded-lg';
+        previewBox.className = 'preview-box p-3 border-4 border-slate-600 rounded-2xl';
         const previewCanvas = document.createElement('canvas');
-        previewCanvas.className = 'max-w-[250px] md:max-w-[400px] bg-white';
+        previewCanvas.className = 'max-w-[85vw] max-h-[70vh] object-contain bg-white';
         previewCanvas.height = fullViewport.height; previewCanvas.width = fullViewport.width;
         page.render({ canvasContext: previewCanvas.getContext('2d'), viewport: fullViewport });
         previewBox.appendChild(previewCanvas);
@@ -398,7 +406,7 @@ function renderMergeList() {
     const list = document.getElementById('merge-list'); list.innerHTML = '';
     mergeFiles.forEach((file, index) => {
         list.innerHTML += `
-            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between items-center shadow-sm">
+            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between items-center shadow-sm w-full">
                 <div class="truncate mr-4 text-sm font-medium w-full">📄 ${file.name}</div>
                 <div class="flex gap-1 shrink-0">
                     <button class="bg-slate-700 px-2 py-1 rounded hover:bg-slate-600" onclick="moveMergeFile(${index}, -1)">🔼</button>
