@@ -1,434 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#121212">
+    <meta name="theme-color" content="#1e293b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Simple PDF Editor</title>
+    <title>Pro PDF Suite</title>
     
-    <link rel="manifest" id="manifest-link">
+    <link rel="manifest" href="./manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { slate: { 850: '#151e2e' } } } } }
+    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     
     <style>
-        :root {
-            --bg: #121212; --surface: #1e1e1e; --primary: #0a84ff; 
-            --text: #ffffff; --border: #333; --danger: #ff453a;
-        }
+        body { -webkit-tap-highlight-color: transparent; }
+        /* Hide scrollbar for toolbars */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
-
-        /* Touch-Friendly Buttons */
-        button { background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; padding: 8px; min-width: 50px; min-height: 44px; white-space: nowrap; }
-        button:active { background: rgba(255,255,255,0.1); }
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
-        button.active { background: rgba(10, 132, 255, 0.2); color: var(--primary); border-color: var(--primary); }
-        button.primary-btn { background: var(--primary); color: white; border: none; padding: 10px 16px; flex-direction: row; gap: 8px; }
-        
-        input[type="color"] { width: 34px; height: 34px; padding: 0; border: none; border-radius: 6px; background: none; }
-        select { background: #333; color: white; border: none; border-radius: 6px; padding: 8px; font-size: 14px; min-height: 44px; }
-
-        /* Top Bar */
-        .top-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; flex-shrink: 0; }
-        .page-controls { display: flex; align-items: center; gap: 10px; background: #000; padding: 4px 8px; border-radius: 20px; }
-        .page-controls button { min-height: 36px; min-width: 36px; padding: 0; }
-
-        /* Workspace & Scrolling */
-        #workspace { flex: 1; overflow: auto; background: var(--bg); position: relative; -webkit-overflow-scrolling: touch; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        #canvas-wrapper { background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.5); transform-origin: top left; }
-
-        /* Bottom Toolbar (Mobile First) */
-        .bottom-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 10px; display: flex; gap: 8px; overflow-x: auto; z-index: 100; flex-shrink: 0; align-items: center; scrollbar-width: none; }
-        .bottom-bar::-webkit-scrollbar { display: none; }
-        
-        .divider { width: 1px; height: 30px; background: var(--border); margin: 0 5px; flex-shrink: 0; }
-
-        /* Sub-toolbar for properties */
-        .properties-bar { background: #2a2a2a; padding: 8px 15px; display: none; gap: 15px; align-items: center; overflow-x: auto; flex-shrink: 0; }
-
-        /* Overlays */
-        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
-        .modal { background: var(--surface); border-radius: 12px; padding: 20px; width: 100%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; }
-        .modal h3 { margin: 0; font-size: 18px; }
-        .modal input[type="text"] { background: #000; color: white; border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-size: 16px; width: 100%; }
-        
-        #sig-container { border: 2px dashed #555; background: white; border-radius: 8px; touch-action: none; overflow: hidden; }
-
-        #loader { display: none; flex-direction: column; align-items: center; gap: 15px; z-index: 2000; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* Quick View Hover Setup */
+        .thumb-group .preview-box { display: none; position: absolute; z-index: 50; top: -10px; left: 110%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: none; }
+        .thumb-group:hover .preview-box { display: block; }
+        @media (max-width: 768px) { .thumb-group .preview-box { left: 50%; top: -220px; transform: translateX(-50%); } }
     </style>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 h-[100dvh] flex flex-col overflow-hidden font-sans">
 
-<div class="top-bar">
-    <div style="display: flex; gap: 10px;">
-        <input type="file" id="upload-pdf" accept="application/pdf" hidden>
-        <button class="primary-btn" onclick="document.getElementById('upload-pdf').click()">
-            <span style="font-size: 18px;">📄</span> Open
-        </button>
-    </div>
+    <div id="home-screen" class="screen flex flex-col h-full overflow-y-auto items-center p-6">
+        <div class="w-full max-w-4xl flex justify-between items-center mb-8 pt-4">
+            <h1 class="text-3xl font-bold text-blue-500 flex items-center gap-2">📄 PDF Suite</h1>
+            <button id="install-btn" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-colors flex items-center gap-2">
+                ⬇️ Install App
+            </button>
+        </div>
+        
+        <p class="text-slate-400 mb-10 text-center max-w-md">Your complete toolkit for editing, merging, organizing, and splitting PDF documents.</p>
 
-    <div class="page-controls">
-        <button onclick="changePage(-1)" id="prev-btn" disabled>◀</button>
-        <span id="page-info" style="font-size: 14px; font-weight: bold; min-width: 40px; text-align: center;">0/0</span>
-        <button onclick="changePage(1)" id="next-btn" disabled>▶</button>
-    </div>
-
-    <button class="primary-btn" style="background: #30d158;" onclick="openExportModal()">
-        <span style="font-size: 18px;">💾</span> Save
-    </button>
-</div>
-
-<div class="properties-bar" id="prop-bar">
-    <input type="color" id="colorPicker" value="#000000" onchange="updateStyle()">
-    <select id="sizePicker" onchange="updateStyle()">
-        <option value="14">Small</option>
-        <option value="22" selected>Medium</option>
-        <option value="36">Large</option>
-        <option value="60">Extra Large</option>
-    </select>
-    <button onclick="deleteSelected()" style="color: var(--danger); font-size: 20px; margin-left: auto;">🗑️</button>
-</div>
-
-<div id="workspace">
-    <div id="canvas-wrapper">
-        <canvas id="main-canvas"></canvas>
-    </div>
-</div>
-
-<div class="bottom-bar">
-    <button id="tool-pan" onclick="setTool('pan')" class="active" style="font-size: 20px;">🖐️<span style="font-size: 10px;">Pan</span></button>
-    <div class="divider"></div>
-    <button id="tool-text" onclick="setTool('text')" style="font-size: 20px;">📝<span style="font-size: 10px;">Text</span></button>
-    <button id="tool-pen" onclick="setTool('pen')" style="font-size: 20px;">🖊️<span style="font-size: 10px;">Pen</span></button>
-    <button id="tool-highlighter" onclick="setTool('highlighter')" style="font-size: 20px;">🖍️<span style="font-size: 10px;">Highlight</span></button>
-    <div class="divider"></div>
-    <button onclick="openSignatureModal()" style="font-size: 20px;">🖋️<span style="font-size: 10px;">Sign</span></button>
-    <input type="file" id="upload-img" accept="image/*" hidden onchange="handleImageUpload(event)">
-    <button onclick="document.getElementById('upload-img').click()" style="font-size: 20px;">🖼️<span style="font-size: 10px;">Image</span></button>
-    <div class="divider"></div>
-    <button onclick="setZoom(0.2)" style="font-size: 20px;">🔍+<span style="font-size: 10px;">Zoom In</span></button>
-    <button onclick="setZoom(-0.2)" style="font-size: 20px;">🔍-<span style="font-size: 10px;">Zoom Out</span></button>
-</div>
-
-<div class="overlay" id="loader-overlay"><div id="loader"><div class="spinner"></div><div id="loader-text">Loading...</div></div></div>
-
-<div class="overlay" id="sig-modal">
-    <div class="modal">
-        <h3>Sign Document</h3>
-        <div id="sig-container"><canvas id="sig-canvas" width="300" height="150"></canvas></div>
-        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-            <button onclick="clearSignature()" style="color: #aaa;">Clear</button>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="closeModal('sig-modal')">Cancel</button>
-                <button class="primary-btn" onclick="saveSignature()">Insert</button>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
+            <div onclick="navTo('editor')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
+                <div class="text-4xl">📝</div><div class="font-semibold text-center">Edit PDF</div><div class="text-xs text-slate-400 text-center">Draw, Type & Sign</div>
+            </div>
+            <div onclick="navTo('organize')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
+                <div class="text-4xl">✂️</div><div class="font-semibold text-center">Organize</div><div class="text-xs text-slate-400 text-center">Rearrange & Delete</div>
+            </div>
+            <div onclick="navTo('merge')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
+                <div class="text-4xl">🔗</div><div class="font-semibold text-center">Merge</div><div class="text-xs text-slate-400 text-center">Combine Multiple</div>
+            </div>
+            <div onclick="navTo('split')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
+                <div class="text-4xl">🔪</div><div class="font-semibold text-center">Split</div><div class="text-xs text-slate-400 text-center">Extract Pages</div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="overlay" id="export-modal">
-    <div class="modal">
-        <h3>Save Document</h3>
-        <input type="text" id="export-name" value="Edited_Document">
-        <select id="export-format" style="width: 100%; margin-top: 10px;">
-            <option value="pdf">Save as PDF</option>
-            <option value="png">Save Page as Image</option>
-        </select>
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
-            <button onclick="closeModal('export-modal')">Cancel</button>
-            <button class="primary-btn" onclick="executeExport()">Download</button>
+    <div id="tool-header" class="hidden bg-slate-800 border-b border-slate-700 p-3 flex justify-between items-center shrink-0 shadow-md">
+        <button onclick="navTo('home')" class="text-slate-300 hover:text-white flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg">🔙 <span class="hidden sm:inline">Home</span></button>
+        <div id="tool-title" class="font-semibold text-lg hidden sm:block">Tool Name</div>
+        <div class="flex items-center gap-2" id="header-actions">
+            </div>
+    </div>
+
+    <div id="editor-screen" class="screen hidden flex-col flex-1 overflow-hidden relative">
+        <div id="prop-bar" class="hidden bg-slate-850 p-2 border-b border-slate-700 flex items-center gap-3 overflow-x-auto no-scrollbar shrink-0">
+            <input type="color" id="colorPicker" value="#000000" class="w-8 h-8 rounded cursor-pointer border-none bg-transparent" onchange="updateStyle()">
+            <input type="number" id="sizePicker" value="20" min="1" max="150" class="w-16 bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none" oninput="updateStyle()" placeholder="Size">
+            <select id="fontFamily" onchange="updateStyle()" class="bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none border-r-8 border-transparent">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times</option>
+                <option value="Courier New">Courier</option>
+            </select>
+            <button onclick="deleteSelected()" class="ml-auto text-red-400 hover:text-red-300 p-1 text-xl">🗑️</button>
+        </div>
+
+        <div id="workspace" class="flex-1 overflow-auto bg-slate-900 p-4 flex flex-col items-center relative touch-pan-x touch-pan-y">
+            <div id="canvas-wrapper" class="bg-white shadow-2xl origin-top-left transition-transform duration-75"><canvas id="main-canvas"></canvas></div>
+        </div>
+
+        <div class="bg-slate-800 border-t border-slate-700 p-2 flex gap-1 overflow-x-auto no-scrollbar items-center shrink-0">
+            <button id="tool-pan" onclick="setTool('pan')" class="ed-btn active-tool p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🖐️</span><span class="text-[10px] uppercase mt-1">Pan</span>
+            </button>
+            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
+            <button id="tool-text" onclick="setTool('text')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">📝</span><span class="text-[10px] uppercase mt-1">Text</span>
+            </button>
+            <button id="tool-pen" onclick="setTool('pen')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🖊️</span><span class="text-[10px] uppercase mt-1">Pen</span>
+            </button>
+            <button id="tool-highlighter" onclick="setTool('highlighter')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🖍️</span><span class="text-[10px] uppercase mt-1">Mark</span>
+            </button>
+            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
+            <button onclick="openSignatureModal()" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🖋️</span><span class="text-[10px] uppercase mt-1">Sign</span>
+            </button>
+            <button onclick="document.getElementById('upload-img').click()" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🖼️</span><span class="text-[10px] uppercase mt-1">Image</span>
+            </button>
+            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
+            <button onclick="setZoom(0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🔍+</span><span class="text-[10px] uppercase mt-1">Zoom In</span>
+            </button>
+            <button onclick="setZoom(-0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700">
+                <span class="text-xl">🔍-</span><span class="text-[10px] uppercase mt-1">Out</span>
+            </button>
         </div>
     </div>
-</div>
 
-<script>
-    // --- PWA Setup (Single File Trick) ---
-    const manifest = {
-        name: "Simple PDF Editor", short_name: "PDF Edit", start_url: ".", display: "standalone",
-        background_color: "#121212", theme_color: "#1e1e1e",
-        icons: [{ src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a84ff'/><path d='M30 25h40v50H30z' fill='white'/><path d='M40 40h20m-20 10h20m-20 10h10' stroke='%230a84ff' stroke-width='4' stroke-linecap='round'/></svg>", sizes: "192x192", type: "image/svg+xml" }]
-    };
-    document.getElementById('manifest-link').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+    <div id="organize-screen" class="screen hidden flex-col flex-1 overflow-hidden relative">
+        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            <div id="org-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-org').click()">
+                <div class="text-5xl mb-4">📄</div><h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">View, delete, and rearrange pages</p>
+            </div>
+            <div id="thumbnail-grid" class="flex flex-wrap gap-6 justify-center w-full max-w-5xl"></div>
+        </div>
+    </div>
 
-    const swCode = `self.addEventListener('fetch', e => {});`;
-    navigator.serviceWorker?.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' })));
+    <div id="merge-screen" class="screen hidden flex-col flex-1 overflow-hidden relative">
+        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            <div class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors mb-6" onclick="document.getElementById('upload-merge').click()">
+                <div class="text-5xl mb-4">🔗</div><h3 class="text-xl font-bold mb-2">Tap to select multiple PDFs</h3><p class="text-slate-400">Select 2 or more files to combine them</p>
+            </div>
+            <div id="merge-list" class="w-full max-w-lg flex flex-col gap-3"></div>
+        </div>
+    </div>
 
-    // --- Core Setup ---
-    const { jsPDF } = window.jspdf;
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    <div id="split-screen" class="screen hidden flex-col flex-1 overflow-hidden relative">
+        <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            <div id="split-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-split').click()">
+                <div class="text-5xl mb-4">🔪</div><h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">Select specific pages to extract into a new file</p>
+            </div>
+            <div id="split-grid" class="flex flex-wrap gap-6 justify-center w-full max-w-5xl mt-6"></div>
+        </div>
+    </div>
 
-    let canvas = new fabric.Canvas('main-canvas', { preserveObjectStacking: true, selection: false });
-    let sigCanvas; 
-    let pdfDoc = null, pageNum = 1, currentZoom = 1;
-    let pageStates = {};
-    let activeTool = 'pan'; // pan, text, pen, highlighter
+    <div id="loader-overlay" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
+        <div id="loader-text" class="mt-4 text-lg font-medium">Processing...</div>
+    </div>
 
-    // --- Tool Switching ---
-    function setTool(tool) {
-        activeTool = tool;
-        document.querySelectorAll('.bottom-bar button').forEach(b => b.classList.remove('active'));
-        document.getElementById('tool-' + tool)?.classList.add('active');
-        
-        canvas.isDrawingMode = (tool === 'pen' || tool === 'highlighter');
-        canvas.selection = (tool !== 'pan');
-        
-        if (tool === 'pan') {
-            canvas.defaultCursor = 'grab';
-            document.getElementById('prop-bar').style.display = 'none';
-        } else {
-            canvas.defaultCursor = tool === 'text' ? 'crosshair' : 'default';
-            document.getElementById('prop-bar').style.display = 'flex';
-            updateStyle();
-        }
-    }
+    <div id="save-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">Save File As</h3>
+            <input type="text" id="save-filename" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-6 focus:border-blue-500 outline-none" value="Document">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('save-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
+                <button id="save-confirm-btn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow">Save Document</button>
+            </div>
+        </div>
+    </div>
 
-    // --- Canvas Panning Logic (For mobile scrolling) ---
-    let isDragging = false, lastPosX, lastPosY;
-    canvas.on('mouse:down', function(opt) {
-        if (activeTool === 'pan') {
-            isDragging = true;
-            canvas.defaultCursor = 'grabbing';
-            lastPosX = opt.e.clientX || opt.e.touches?.[0].clientX;
-            lastPosY = opt.e.clientY || opt.e.touches?.[0].clientY;
-        } else if (activeTool === 'text' && !opt.target) {
-            // Text Placement Fallback for Mobile
-            let textValue = prompt("Enter text to insert:");
-            if (textValue) {
-                let pointer = canvas.getPointer(opt.e);
-                let textObj = new fabric.IText(textValue, {
-                    left: pointer.x, top: pointer.y,
-                    fill: document.getElementById('colorPicker').value,
-                    fontSize: parseInt(document.getElementById('sizePicker').value)
-                });
-                canvas.add(textObj);
-                canvas.setActiveObject(textObj);
-                setTool('pan'); // auto switch back to pan
-            }
-        }
-    });
+    <div id="export-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">Export File</h3>
+            <label class="text-xs text-slate-400 uppercase tracking-wider">File Name</label>
+            <input type="text" id="export-name" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 mb-4 focus:border-blue-500 outline-none" value="Edited_Document">
+            <label class="text-xs text-slate-400 uppercase tracking-wider">Format</label>
+            <select id="export-format" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 mb-6 outline-none">
+                <option value="pdf">Save as PDF (All Pages)</option>
+                <option value="png">Save Page as Image (PNG)</option>
+            </select>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('export-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
+                <button onclick="executeExport()" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow">Download</button>
+            </div>
+        </div>
+    </div>
 
-    canvas.on('mouse:move', function(opt) {
-        if (isDragging && activeTool === 'pan') {
-            let e = opt.e;
-            let clientX = e.clientX || e.touches?.[0].clientX;
-            let clientY = e.clientY || e.touches?.[0].clientY;
-            let workspace = document.getElementById('workspace');
-            workspace.scrollLeft -= (clientX - lastPosX);
-            workspace.scrollTop -= (clientY - lastPosY);
-            lastPosX = clientX; lastPosY = clientY;
-        }
-    });
+    <div id="sig-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">Sign Document</h3>
+            <div id="sig-container" class="bg-white rounded-lg border-2 border-dashed border-slate-400 overflow-hidden touch-none mb-4">
+                <canvas id="sig-canvas" width="350" height="150" class="w-full"></canvas>
+            </div>
+            <div class="flex justify-between items-center">
+                <button onclick="clearSignature()" class="text-slate-400 hover:text-white px-2 py-1">Clear</button>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('sig-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Insert Signature</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    canvas.on('mouse:up', () => { isDragging = false; if(activeTool === 'pan') canvas.defaultCursor = 'grab'; });
+    <div id="ios-install-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-end justify-center sm:items-center p-4 pb-10">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl mb-4">📲</div>
+            <h3 class="text-xl font-bold mb-2">Install App on iOS</h3>
+            <p class="text-slate-400 mb-6">Tap the <b>Share</b> button <span class="text-xl inline-block translate-y-1">⬆️</span> at the bottom of Safari, then scroll down and select <b>"Add to Home Screen"</b>.</p>
+            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Got it</button>
+        </div>
+    </div>
 
-    // Double tap text to edit safely on mobile
-    let lastTap = 0;
-    canvas.on('mouse:down', function(opt) {
-        let currentTime = new Date().getTime();
-        let tapLength = currentTime - lastTap;
-        if (tapLength < 500 && tapLength > 0 && opt.target && opt.target.type === 'i-text') {
-            let newText = prompt("Edit your text:", opt.target.text);
-            if(newText !== null) { opt.target.set('text', newText); canvas.renderAll(); }
-        }
-        lastTap = currentTime;
-    });
+    <input type="file" id="upload-pdf" accept="application/pdf" class="hidden">
+    <input type="file" id="upload-img" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+    <input type="file" id="upload-org" accept="application/pdf" class="hidden">
+    <input type="file" id="upload-merge" accept="application/pdf" multiple class="hidden">
+    <input type="file" id="upload-split" accept="application/pdf" class="hidden">
 
-    canvas.on('selection:created', () => document.getElementById('prop-bar').style.display = 'flex');
-    canvas.on('selection:cleared', () => { if(activeTool === 'pan') document.getElementById('prop-bar').style.display = 'none'; });
+    <style> .active-tool { background: rgba(59, 130, 246, 0.2); color: #60a5fa; outline: 1px solid #3b82f6; } </style>
 
-    // --- Document Loading & Auto-Fit ---
-    document.getElementById('upload-pdf').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        showLoader('Loading...');
-        const typedarray = new Uint8Array(await file.arrayBuffer());
-        pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
-        pageNum = 1; pageStates = {}; 
-        await renderPage(pageNum, true);
-        hideLoader();
-    });
-
-    async function renderPage(num, autoFit = false) {
-        const page = await pdfDoc.getPage(num);
-        const baseViewport = page.getViewport({ scale: 2.0 }); // High res render
-        
-        // Auto-fit to screen width on first load
-        if (autoFit) {
-            let screenWidth = window.innerWidth - 40; // minus padding
-            currentZoom = screenWidth / baseViewport.width;
-            updateZoomDisplay();
-        }
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = baseViewport.width; tempCanvas.height = baseViewport.height;
-        await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: baseViewport }).promise;
-
-        canvas.clear();
-        canvas.setDimensions({ width: baseViewport.width, height: baseViewport.height });
-
-        fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-            if (pageStates[num]) canvas.loadFromJSON(pageStates[num], canvas.renderAll.bind(canvas));
-        });
-
-        document.getElementById('page-info').textContent = `${num}/${pdfDoc.numPages}`;
-        document.getElementById('prev-btn').disabled = num <= 1;
-        document.getElementById('next-btn').disabled = num >= pdfDoc.numPages;
-    }
-
-    function changePage(offset) {
-        if (!pdfDoc) return;
-        let newPage = pageNum + offset;
-        if (newPage > 0 && newPage <= pdfDoc.numPages) {
-            pageStates[pageNum] = JSON.stringify(canvas);
-            pageNum = newPage;
-            renderPage(pageNum);
-        }
-    }
-
-    // --- Zoom Math ---
-    function updateZoomDisplay() {
-        document.getElementById('canvas-wrapper').style.transform = `scale(${currentZoom})`;
-        canvas.calcOffset();
-    }
-    function setZoom(change) {
-        currentZoom = Math.max(0.2, Math.min(4, currentZoom + change));
-        updateZoomDisplay();
-    }
-
-    // Smart Center Insert
-    function getCenter() {
-        let ws = document.getElementById('workspace');
-        let rect = document.getElementById('canvas-wrapper').getBoundingClientRect();
-        return {
-            left: Math.max(50, (ws.clientWidth/2 - rect.left) / currentZoom),
-            top: Math.max(50, (ws.clientHeight/2 - rect.top) / currentZoom)
-        };
-    }
-
-    // --- Styling & Deleting ---
-    function updateStyle() {
-        let color = document.getElementById('colorPicker').value;
-        let size = parseInt(document.getElementById('sizePicker').value);
-        let active = canvas.getActiveObject();
-        
-        if (active && active.type === 'i-text') { active.set({fill: color, fontSize: size}); canvas.renderAll(); }
-        
-        if (activeTool === 'highlighter') {
-            let r = parseInt(color.substr(1,2),16), g = parseInt(color.substr(3,2),16), b = parseInt(color.substr(5,2),16);
-            canvas.freeDrawingBrush.color = `rgba(${r},${g},${b}, 0.3)`;
-            canvas.freeDrawingBrush.width = size * 1.5;
-        } else {
-            canvas.freeDrawingBrush.color = color;
-            canvas.freeDrawingBrush.width = size / 4;
-        }
-    }
-
-    canvas.on('path:created', function(opt) {
-        if (activeTool === 'highlighter') { opt.path.globalCompositeOperation = 'multiply'; canvas.renderAll(); }
-    });
-
-    function deleteSelected() {
-        let active = canvas.getActiveObjects();
-        if (active.length) { canvas.discardActiveObject(); active.forEach(obj => canvas.remove(obj)); }
-    }
-
-    // --- Image & Signature ---
-    function handleImageUpload(e) {
-        let file = e.target.files[0];
-        if(!file) return;
-        let reader = new FileReader();
-        reader.onload = function(f) {
-            fabric.Image.fromURL(f.target.result, (img) => {
-                let center = getCenter();
-                img.scaleToWidth(150); img.set({left: center.left, top: center.top, originX: 'center', originY: 'center'});
-                canvas.add(img); canvas.setActiveObject(img); setTool('pan');
-            });
-        };
-        reader.readAsDataURL(file); e.target.value = "";
-    }
-
-    function openSignatureModal() {
-        document.getElementById('sig-modal').style.display = 'flex';
-        if(!sigCanvas) {
-            sigCanvas = new fabric.Canvas('sig-canvas', { isDrawingMode: true });
-            sigCanvas.freeDrawingBrush.width = 3;
-            // Prevent scrolling while signing
-            document.getElementById('sig-container').addEventListener('touchmove', e => e.preventDefault(), {passive: false});
-        }
-        sigCanvas.clear();
-    }
-    function clearSignature() { if(sigCanvas) sigCanvas.clear(); }
-    function saveSignature() {
-        if(sigCanvas.getObjects().length === 0) return closeModal('sig-modal');
-        fabric.Image.fromURL(sigCanvas.toDataURL('image/png'), (img) => {
-            let center = getCenter();
-            img.set({left: center.left, top: center.top, originX: 'center', originY: 'center'});
-            canvas.add(img); canvas.setActiveObject(img); setTool('pan');
-            closeModal('sig-modal');
-        });
-    }
-
-    // --- Safe Mobile Exporting ---
-    function openExportModal() { if(pdfDoc) document.getElementById('export-modal').style.display = 'flex'; else alert("Open a PDF first!"); }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function showLoader(text) { document.getElementById('loader-overlay').style.display='flex'; document.getElementById('loader').style.display='flex'; document.getElementById('loader-text').innerText=text; }
-    function hideLoader() { document.getElementById('loader-overlay').style.display='none'; }
-
-    async function executeExport() {
-        closeModal('export-modal');
-        showLoader('Saving file...');
-        let name = document.getElementById('export-name').value || 'Edited_Document';
-        let format = document.getElementById('export-format').value;
-
-        setTimeout(async () => {
-            if (format === 'png') {
-                let a = document.createElement('a');
-                a.href = canvas.toDataURL({format: 'png', quality: 1});
-                a.download = name + '.png'; a.click();
-            } else {
-                pageStates[pageNum] = JSON.stringify(canvas);
-                let newPdf = null;
-                for (let i = 1; i <= pdfDoc.numPages; i++) {
-                    const page = await pdfDoc.getPage(i);
-                    const viewport = page.getViewport({ scale: 2.0 });
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.height = viewport.height; tempCanvas.width = viewport.width;
-                    await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: viewport }).promise;
-
-                    const staticCanvas = new fabric.StaticCanvas(null, { width: viewport.width, height: viewport.height });
-                    await new Promise(r => fabric.Image.fromURL(tempCanvas.toDataURL(), img => {
-                        staticCanvas.setBackgroundImage(img, () => {
-                            if (pageStates[i]) staticCanvas.loadFromJSON(pageStates[i], () => { staticCanvas.renderAll(); r(); });
-                            else r();
-                        });
-                    }));
-
-                    let imgData = staticCanvas.toDataURL('image/jpeg', 0.8); // 0.8 saves RAM on mobile
-                    let orient = viewport.width > viewport.height ? 'l' : 'p';
-                    if (i === 1) newPdf = new jsPDF({ orientation: orient, unit: 'px', format: [viewport.width, viewport.height] });
-                    else newPdf.addPage([viewport.width, viewport.height], orient);
-                    newPdf.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
-                }
-                
-                // Safe Blob Download for iOS and Android compatibility
-                let blob = newPdf.output('blob');
-                let url = URL.createObjectURL(blob);
-                let a = document.createElement('a');
-                a.href = url; a.download = name + '.pdf';
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 500);
-            }
-            hideLoader();
-        }, 50);
-    }
-</script>
+    <script src="./app.js"></script>
 </body>
 </html>
