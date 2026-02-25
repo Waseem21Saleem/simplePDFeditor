@@ -10,7 +10,7 @@
     
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
-    <link rel="manifest" href="./manifest.json?v=3">
+    <link rel="manifest" href="./manifest.json?v=4">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -27,6 +27,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* Centered Quick View Hover Setup */
         .thumb-group .preview-box { 
             display: none; position: fixed; z-index: 200; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             box-shadow: 0 20px 60px rgba(0,0,0,0.9); pointer-events: none; border-radius: 12px; overflow: hidden; background: white;
@@ -90,7 +91,7 @@
             </div>
 
             <div id="scroll-spacer" class="relative mx-auto transition-all duration-75">
-                <div id="canvas-wrapper" class="hidden bg-white shadow-2xl origin-top-left absolute top-0 left-0">
+                <div id="canvas-wrapper" class="opacity-0 pointer-events-none bg-white shadow-2xl origin-top-left absolute top-0 left-0">
                     <canvas id="main-canvas"></canvas>
                 </div>
             </div>
@@ -128,8 +129,8 @@
     </div>
 
     <div id="organize-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center">
+        <div class="flex-1 overflow-y-auto min-h-0 p-6 w-full">
+            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
                 <div id="org-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-org').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
                     <h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">View, delete, and rearrange pages</p>
@@ -140,8 +141,8 @@
     </div>
 
     <div id="merge-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center">
+        <div class="flex-1 overflow-y-auto min-h-0 p-6 w-full">
+            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
                 <div class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors mb-6" onclick="document.getElementById('upload-merge').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
                     <h3 class="text-xl font-bold mb-2">Tap to select multiple PDFs</h3><p class="text-slate-400">Select 2 or more files to combine them</p>
@@ -152,8 +153,8 @@
     </div>
 
     <div id="split-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center">
+        <div class="flex-1 overflow-y-auto min-h-0 p-6 w-full">
+            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
                 <div id="split-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-split').click()">
                     <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
                     <h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">Select specific pages to extract</p>
@@ -176,7 +177,7 @@
 
     <div id="loader-overlay" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col items-center justify-center">
         <div class="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
-        <div id="loader-text" class="mt-4 text-lg font-medium">Processing...</div>
+        <div id="loader-text" class="mt-4 text-lg font-medium text-white text-center">Processing...</div>
     </div>
 
     <div id="save-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
@@ -185,14 +186,14 @@
             <input type="text" id="save-filename" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-6 focus:border-blue-500 outline-none" value="Document">
             <div class="flex justify-end gap-3">
                 <button onclick="closeModal('save-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                <button id="save-confirm-btn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow">Save Document</button>
+                <button id="save-confirm-btn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow text-white">Save Document</button>
             </div>
         </div>
     </div>
 
     <div id="export-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-4">Export File</h3>
+            <h3 class="text-xl font-bold mb-4 text-white">Export File</h3>
             <label class="text-xs text-slate-400 uppercase tracking-wider">File Name</label>
             <input type="text" id="export-name" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 mb-4 focus:border-blue-500 outline-none" value="Edited_Document">
             <label class="text-xs text-slate-400 uppercase tracking-wider">Format</label>
@@ -202,14 +203,14 @@
             </select>
             <div class="flex justify-end gap-3">
                 <button onclick="closeModal('export-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                <button onclick="executeExport()" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow">Download</button>
+                <button onclick="executeExport()" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow text-white">Download</button>
             </div>
         </div>
     </div>
 
     <div id="sig-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <h3 class="text-xl font-bold mb-4">Sign Document</h3>
+            <h3 class="text-xl font-bold mb-4 text-white">Sign Document</h3>
             <div id="sig-container" class="bg-white rounded-lg border-2 border-dashed border-slate-400 overflow-hidden touch-none mb-4">
                 <canvas id="sig-canvas" width="350" height="150" class="w-full"></canvas>
             </div>
@@ -217,7 +218,7 @@
                 <button onclick="clearSignature()" class="text-slate-400 hover:text-white px-2 py-1">Clear</button>
                 <div class="flex gap-2">
                     <button onclick="closeModal('sig-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                    <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Insert Signature</button>
+                    <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Insert Signature</button>
                 </div>
             </div>
         </div>
@@ -228,7 +229,7 @@
             <div class="text-4xl mb-4">📲</div>
             <h3 class="text-xl font-bold mb-2">Install App on Phone</h3>
             <p class="text-slate-400 mb-6">Tap the <b>Share / Options</b> menu in your browser, then scroll down and select <b>"Add to Home Screen"</b> to install the app.</p>
-            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow">Got it</button>
+            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Got it</button>
         </div>
     </div>
 

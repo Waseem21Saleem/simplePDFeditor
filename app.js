@@ -39,18 +39,18 @@ function navTo(screenId) {
                 <span id="page-info" class="text-xs font-bold min-w-[30px] text-center">0/0</span>
                 <button onclick="changePage(1)" id="next-btn" disabled class="disabled:opacity-30">▶</button>
             </div>
-            <button onclick="openExportModal()" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Save</button>
+            <button onclick="openExportModal()" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium text-white">💾 Save</button>
         `;
         if (pdfDoc) updateZoomDisplay();
     } else if (screenId === 'organize') {
         title.innerText = 'Organize Pages';
-        actions.innerHTML = `<button onclick="openSaveModal('organize')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Save</button>`;
+        actions.innerHTML = `<button onclick="openSaveModal('organize')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium text-white">💾 Save</button>`;
     } else if (screenId === 'merge') {
         title.innerText = 'Merge PDFs';
-        actions.innerHTML = `<button onclick="document.getElementById('upload-merge').click()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-sm font-medium">➕ Add</button><button onclick="openSaveModal('merge')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Merge</button>`;
+        actions.innerHTML = `<button onclick="document.getElementById('upload-merge').click()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-sm font-medium">➕ Add</button><button onclick="openSaveModal('merge')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium text-white">💾 Merge</button>`;
     } else if (screenId === 'split') {
         title.innerText = 'Extract Pages';
-        actions.innerHTML = `<button onclick="openSaveModal('split')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium">💾 Extract</button>`;
+        actions.innerHTML = `<button onclick="openSaveModal('split')" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded-lg text-sm font-medium text-white">💾 Extract</button>`;
     }
 }
 
@@ -83,7 +83,6 @@ let canvas = new fabric.Canvas('main-canvas', { preserveObjectStacking: true, se
 let sigCanvas, pdfDoc = null, pageNum = 1, currentZoom = 1;
 let pageStates = {}, activeTool = 'pan';
 
-// Dirty Flagging for Canvas edits
 canvas.on('object:added', () => isDirty = true);
 canvas.on('object:modified', () => isDirty = true);
 canvas.on('object:removed', () => isDirty = true);
@@ -168,16 +167,27 @@ function syncToolbar() {
 
 document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    showLoader('Loading...');
     
-    // Hide Placeholder, Show Canvas
-    document.getElementById('editor-placeholder').classList.add('hidden');
-    document.getElementById('canvas-wrapper').classList.remove('hidden');
-
-    pdfDoc = await pdfjsLib.getDocument(new Uint8Array(await file.arrayBuffer())).promise;
-    pageNum = 1; pageStates = {}; isDirty = false;
-    await renderPage(pageNum, true);
-    hideLoader();
+    try {
+        showLoader('Loading PDF...');
+        const arrayBuffer = await file.arrayBuffer();
+        pdfDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+        pageNum = 1; pageStates = {}; isDirty = false;
+        
+        // Remove Placeholder, reveal canvas
+        document.getElementById('editor-placeholder').classList.add('hidden');
+        const wrapper = document.getElementById('canvas-wrapper');
+        wrapper.classList.remove('opacity-0');
+        wrapper.classList.remove('pointer-events-none');
+        
+        await renderPage(pageNum, true);
+    } catch (error) {
+        console.error("PDF Load Error:", error);
+        alert("Failed to load PDF. Please try a different file.");
+    } finally {
+        hideLoader();
+        e.target.value = ''; // Reset input to allow re-uploading same file
+    }
 });
 
 async function renderPage(num, autoFit = false) {
@@ -323,16 +333,24 @@ let orgPdfDoc = null, orgPdfJsDoc = null, orgPageArray = [];
 
 document.getElementById('upload-org').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    showLoader('Processing Pages...');
-    document.getElementById('org-upload-box').classList.add('hidden');
-    isDirty = false;
-    
-    const arrayBuffer = await file.arrayBuffer();
-    orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-    orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
-    orgPageArray = Array.from({length: orgPdfJsDoc.numPages}, (_, i) => i);
-    await renderOrganizeGrid();
-    hideLoader();
+    try {
+        showLoader('Processing Pages...');
+        document.getElementById('org-upload-box').classList.add('hidden');
+        isDirty = false;
+        
+        const arrayBuffer = await file.arrayBuffer();
+        orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+        orgPageArray = Array.from({length: orgPdfJsDoc.numPages}, (_, i) => i);
+        await renderOrganizeGrid();
+    } catch (error) {
+        console.error(error);
+        alert("Error reading PDF.");
+        document.getElementById('org-upload-box').classList.remove('hidden');
+    } finally {
+        hideLoader();
+        e.target.value = '';
+    }
 });
 
 async function renderOrganizeGrid() {
@@ -391,11 +409,13 @@ function deletePage(index) {
 async function exportOrganizedPDF(filename) {
     if(!orgPdfDoc || orgPageArray.length === 0) return;
     showLoader('Generating PDF...');
-    const newPdf = await PDFLib.PDFDocument.create();
-    const copiedPages = await newPdf.copyPages(orgPdfDoc, orgPageArray);
-    copiedPages.forEach(p => newPdf.addPage(p));
-    triggerDownload(await newPdf.save(), filename + '.pdf');
-    isDirty = false;
+    try {
+        const newPdf = await PDFLib.PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(orgPdfDoc, orgPageArray);
+        copiedPages.forEach(p => newPdf.addPage(p));
+        triggerDownload(await newPdf.save(), filename + '.pdf');
+        isDirty = false;
+    } catch(e) { console.error(e); }
     hideLoader();
 }
 
@@ -406,6 +426,7 @@ let mergeFiles = [];
 document.getElementById('upload-merge').addEventListener('change', (e) => {
     mergeFiles = mergeFiles.concat(Array.from(e.target.files));
     isDirty = true;
+    e.target.value = '';
     renderMergeList();
 });
 
@@ -450,58 +471,68 @@ async function exportMergedPDF(filename) {
 let splitSelectedPages = new Set();
 document.getElementById('upload-split').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    showLoader('Processing...');
-    document.getElementById('split-upload-box').classList.add('hidden');
-    isDirty = false;
-    const arrayBuffer = await file.arrayBuffer();
-    orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-    orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
-    splitSelectedPages.clear();
-    
-    const grid = document.getElementById('split-grid'); grid.innerHTML = '';
-    for(let i=0; i < orgPdfJsDoc.numPages; i++) {
-        const page = await orgPdfJsDoc.getPage(i + 1);
-        const viewport = page.getViewport({ scale: 0.3 });
-        const fullViewport = page.getViewport({ scale: 1.0 });
+    try {
+        showLoader('Processing...');
+        document.getElementById('split-upload-box').classList.add('hidden');
+        isDirty = false;
         
-        const wrap = document.createElement('div');
-        wrap.className = 'thumb-group cursor-pointer border-4 border-transparent rounded-lg transition-colors p-1 bg-slate-800 relative';
-        wrap.onclick = () => {
-            isDirty = true;
-            if(splitSelectedPages.has(i)) { splitSelectedPages.delete(i); wrap.classList.remove('border-blue-500'); }
-            else { splitSelectedPages.add(i); wrap.classList.add('border-blue-500'); }
-        };
+        const arrayBuffer = await file.arrayBuffer();
+        orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+        splitSelectedPages.clear();
         
-        const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.height = viewport.height; thumbCanvas.width = viewport.width;
-        await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
-        
-        // Split Quick Preview
-        const previewBox = document.createElement('div');
-        previewBox.className = 'preview-box p-3 border-4 border-slate-600 rounded-2xl';
-        const previewCanvas = document.createElement('canvas');
-        previewCanvas.className = 'max-w-[85vw] max-h-[70vh] object-contain bg-white';
-        previewCanvas.height = fullViewport.height; previewCanvas.width = fullViewport.width;
-        page.render({ canvasContext: previewCanvas.getContext('2d'), viewport: fullViewport });
-        previewBox.appendChild(previewCanvas);
+        const grid = document.getElementById('split-grid'); grid.innerHTML = '';
+        for(let i=0; i < orgPdfJsDoc.numPages; i++) {
+            const page = await orgPdfJsDoc.getPage(i + 1);
+            const viewport = page.getViewport({ scale: 0.3 });
+            const fullViewport = page.getViewport({ scale: 1.0 });
+            
+            const wrap = document.createElement('div');
+            wrap.className = 'thumb-group cursor-pointer border-4 border-transparent rounded-lg transition-colors p-1 bg-slate-800 relative';
+            wrap.onclick = () => {
+                isDirty = true;
+                if(splitSelectedPages.has(i)) { splitSelectedPages.delete(i); wrap.classList.remove('border-blue-500'); }
+                else { splitSelectedPages.add(i); wrap.classList.add('border-blue-500'); }
+            };
+            
+            const thumbCanvas = document.createElement('canvas');
+            thumbCanvas.height = viewport.height; thumbCanvas.width = viewport.width;
+            await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
+            
+            // Split Quick Preview
+            const previewBox = document.createElement('div');
+            previewBox.className = 'preview-box p-3 border-4 border-slate-600 rounded-2xl';
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.className = 'max-w-[85vw] max-h-[70vh] object-contain bg-white';
+            previewCanvas.height = fullViewport.height; previewCanvas.width = fullViewport.width;
+            page.render({ canvasContext: previewCanvas.getContext('2d'), viewport: fullViewport });
+            previewBox.appendChild(previewCanvas);
 
-        wrap.innerHTML = `<div class="text-center text-xs font-bold text-slate-400 mb-1">Page ${i+1}</div>`;
-        wrap.appendChild(thumbCanvas); 
-        wrap.appendChild(previewBox);
-        grid.appendChild(wrap);
+            wrap.innerHTML = `<div class="text-center text-xs font-bold text-slate-400 mb-1">Page ${i+1}</div>`;
+            wrap.appendChild(thumbCanvas); 
+            wrap.appendChild(previewBox);
+            grid.appendChild(wrap);
+        }
+    } catch(err) {
+        alert("Error splitting PDF.");
+        document.getElementById('split-upload-box').classList.remove('hidden');
+    } finally {
+        hideLoader();
+        e.target.value = '';
     }
-    hideLoader();
 });
 
 async function exportSplitPDF(filename) {
     if(!orgPdfDoc || splitSelectedPages.size === 0) return alert("Select pages to extract first!");
     showLoader('Extracting...');
-    const newPdf = await PDFLib.PDFDocument.create();
-    const sortedSelected = Array.from(splitSelectedPages).sort((a,b)=>a-b);
-    const copiedPages = await newPdf.copyPages(orgPdfDoc, sortedSelected);
-    copiedPages.forEach(p => newPdf.addPage(p));
-    triggerDownload(await newPdf.save(), filename + '.pdf');
-    isDirty = false;
+    try {
+        const newPdf = await PDFLib.PDFDocument.create();
+        const sortedSelected = Array.from(splitSelectedPages).sort((a,b)=>a-b);
+        const copiedPages = await newPdf.copyPages(orgPdfDoc, sortedSelected);
+        copiedPages.forEach(p => newPdf.addPage(p));
+        triggerDownload(await newPdf.save(), filename + '.pdf');
+        isDirty = false;
+    } catch(e) { console.error(e); }
     hideLoader();
 }
 
