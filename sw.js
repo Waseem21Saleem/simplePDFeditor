@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-suite-v4';
+const CACHE_NAME = 'pdf-suite-v5';
 const ASSETS = [
     './index.html',
     './app.js',

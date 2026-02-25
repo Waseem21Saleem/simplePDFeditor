@@ -3,15 +3,22 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
 }
 
+// Helper: Safely load files across all browsers (Fix for Samsung Internet)
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
 // --- App State & Navigation ---
 let isDirty = false;
 
 function attemptNavHome() {
-    if (isDirty) {
-        document.getElementById('unsaved-modal').classList.remove('hidden');
-    } else {
-        navTo('home');
-    }
+    if (isDirty) document.getElementById('unsaved-modal').classList.remove('hidden');
+    else navTo('home');
 }
 
 function confirmNavHome() {
@@ -63,7 +70,6 @@ function openSaveModal(action) {
     currentSaveAction = action;
     document.getElementById('save-filename').value = action === 'merge' ? 'Merged_Doc' : action === 'split' ? 'Extracted_Pages' : 'Organized_Doc';
     document.getElementById('save-modal').classList.remove('hidden');
-    
     document.getElementById('save-confirm-btn').onclick = () => {
         closeModal('save-modal');
         const name = document.getElementById('save-filename').value;
@@ -99,7 +105,6 @@ function setTool(tool) {
     canvas.isDrawingMode = (tool === 'pen' || tool === 'highlighter');
     canvas.selection = (tool !== 'pan');
     canvas.defaultCursor = tool === 'pan' ? 'grab' : (tool === 'text' ? 'text' : 'default');
-    
     updateStyle();
 }
 
@@ -170,15 +175,12 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     
     try {
         showLoader('Loading PDF...');
-        const arrayBuffer = await file.arrayBuffer();
+        const arrayBuffer = await readFileAsArrayBuffer(file);
         pdfDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
         pageNum = 1; pageStates = {}; isDirty = false;
         
-        // Remove Placeholder, reveal canvas
         document.getElementById('editor-placeholder').classList.add('hidden');
-        const wrapper = document.getElementById('canvas-wrapper');
-        wrapper.classList.remove('opacity-0');
-        wrapper.classList.remove('pointer-events-none');
+        document.getElementById('canvas-wrapper').classList.remove('hidden');
         
         await renderPage(pageNum, true);
     } catch (error) {
@@ -186,14 +188,20 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
         alert("Failed to load PDF. Please try a different file.");
     } finally {
         hideLoader();
-        e.target.value = ''; // Reset input to allow re-uploading same file
+        e.target.value = '';
     }
 });
 
 async function renderPage(num, autoFit = false) {
     const page = await pdfDoc.getPage(num);
-    const baseViewport = page.getViewport({ scale: 2.0 }); 
-    if (autoFit) { currentZoom = (window.innerWidth - 40) / baseViewport.width; }
+    const baseViewport = page.getViewport({ scale: 1.5 }); 
+    
+    // Auto-fit calculation (Clamped for Desktop so it doesn't get huge)
+    if (autoFit) { 
+        let availableWidth = window.innerWidth - 40;
+        availableWidth = Math.min(availableWidth, 900); // Prevent infinite desktop stretch
+        currentZoom = availableWidth / baseViewport.width; 
+    }
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = baseViewport.width; tempCanvas.height = baseViewport.height;
@@ -230,7 +238,7 @@ function updateZoomDisplay() {
     canvas.calcOffset();
 }
 
-function setZoom(change) { currentZoom = Math.max(0.2, Math.min(4, currentZoom + change)); updateZoomDisplay(); }
+function setZoom(change) { currentZoom = Math.max(0.2, Math.min(3, currentZoom + change)); updateZoomDisplay(); }
 
 function updateStyle() {
     let color = document.getElementById('colorPicker').value;
@@ -327,7 +335,7 @@ async function executeExport() {
 }
 
 // ==========================================
-// MODULE 2: ORGANIZE & QUICK VIEW (PDF-Lib)
+// MODULE 2: ORGANIZE & QUICK VIEW
 // ==========================================
 let orgPdfDoc = null, orgPdfJsDoc = null, orgPageArray = [];
 
@@ -338,7 +346,7 @@ document.getElementById('upload-org').addEventListener('change', async (e) => {
         document.getElementById('org-upload-box').classList.add('hidden');
         isDirty = false;
         
-        const arrayBuffer = await file.arrayBuffer();
+        const arrayBuffer = await readFileAsArrayBuffer(file);
         orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
         orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
         orgPageArray = Array.from({length: orgPdfJsDoc.numPages}, (_, i) => i);
@@ -420,7 +428,7 @@ async function exportOrganizedPDF(filename) {
 }
 
 // ==========================================
-// MODULE 3: MERGE PDFs & SPLIT PDFs
+// MODULE 3: MERGE PDFs
 // ==========================================
 let mergeFiles = [];
 document.getElementById('upload-merge').addEventListener('change', (e) => {
@@ -458,7 +466,8 @@ async function exportMergedPDF(filename) {
     try {
         const mergedPdf = await PDFLib.PDFDocument.create();
         for (let file of mergeFiles) {
-            const pdf = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+            const arrayBuffer = await readFileAsArrayBuffer(file);
+            const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             copiedPages.forEach(p => mergedPdf.addPage(p));
         }
@@ -468,6 +477,9 @@ async function exportMergedPDF(filename) {
     hideLoader();
 }
 
+// ==========================================
+// MODULE 4: SPLIT PDFs
+// ==========================================
 let splitSelectedPages = new Set();
 document.getElementById('upload-split').addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -476,7 +488,7 @@ document.getElementById('upload-split').addEventListener('change', async (e) => 
         document.getElementById('split-upload-box').classList.add('hidden');
         isDirty = false;
         
-        const arrayBuffer = await file.arrayBuffer();
+        const arrayBuffer = await readFileAsArrayBuffer(file);
         orgPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
         orgPdfJsDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
         splitSelectedPages.clear();
@@ -499,7 +511,6 @@ document.getElementById('upload-split').addEventListener('change', async (e) => 
             thumbCanvas.height = viewport.height; thumbCanvas.width = viewport.width;
             await page.render({ canvasContext: thumbCanvas.getContext('2d'), viewport: viewport }).promise;
             
-            // Split Quick Preview
             const previewBox = document.createElement('div');
             previewBox.className = 'preview-box p-3 border-4 border-slate-600 rounded-2xl';
             const previewCanvas = document.createElement('canvas');
