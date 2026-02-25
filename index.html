@@ -10,7 +10,7 @@
     
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
-    <link rel="manifest" href="./manifest.json?v=5">
+    <link rel="manifest" href="./manifest.json?v=6">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,6 +26,7 @@
         body { -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .thumb-group .preview-box { 
             display: none; position: fixed; z-index: 200; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             box-shadow: 0 20px 60px rgba(0,0,0,0.9); pointer-events: none; border-radius: 12px; overflow: hidden; background: white;
@@ -64,14 +65,15 @@
         </div>
     </div>
 
-    <div id="tool-header" class="hidden bg-slate-800 border-b border-slate-700 p-3 flex justify-between items-center shrink-0 w-full shadow-md z-50">
+    <div id="tool-header" class="hidden bg-slate-800 border-b border-slate-700 h-14 px-3 flex justify-between items-center shrink-0 w-full shadow-md z-50">
         <button onclick="attemptNavHome()" class="text-slate-300 hover:text-white flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg">🔙 <span class="hidden sm:inline">Home</span></button>
         <div id="tool-title" class="font-semibold text-lg hidden sm:block">Tool Name</div>
         <div class="flex items-center gap-2" id="header-actions"></div>
     </div>
 
-    <div id="editor-screen" class="screen hidden flex-col flex-1 min-h-0 w-full overflow-hidden">
-        <div id="prop-bar" class="shrink-0 bg-slate-850 p-2 border-b border-slate-700 flex items-center gap-3 overflow-x-auto no-scrollbar w-full z-40">
+    <div id="editor-screen" class="screen hidden relative flex-1 w-full overflow-hidden">
+        
+        <div id="prop-bar" class="absolute top-0 left-0 right-0 h-12 bg-slate-850 px-2 border-b border-slate-700 flex items-center gap-3 overflow-x-auto no-scrollbar z-40">
             <input type="color" id="colorPicker" value="#000000" class="w-8 h-8 rounded cursor-pointer border-none bg-transparent shrink-0" onchange="updateStyle()">
             <input type="number" id="sizePicker" value="20" min="1" max="150" class="w-16 bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none shrink-0" oninput="updateStyle()" placeholder="Size">
             <select id="fontFamily" onchange="updateStyle()" class="bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none border-r-8 border-transparent shrink-0">
@@ -82,7 +84,7 @@
             <button onclick="deleteSelected()" class="ml-auto text-red-400 hover:text-red-300 p-1 text-xl shrink-0">🗑️</button>
         </div>
 
-        <div id="workspace" class="flex-1 overflow-auto bg-slate-900 p-4 relative touch-pan-x touch-pan-y w-full">
+        <div id="workspace" class="absolute top-12 bottom-20 left-0 right-0 overflow-auto bg-slate-900 p-4 touch-pan-x touch-pan-y z-30">
             <div id="editor-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none z-10">
                 <div class="text-5xl mb-4">📄</div>
                 <p>Open a PDF to start editing</p>
@@ -94,7 +96,7 @@
             </div>
         </div>
 
-        <div class="shrink-0 bg-slate-800 border-t border-slate-700 p-2 flex flex-nowrap gap-1 overflow-x-auto no-scrollbar items-center w-full z-40 h-[72px]">
+        <div class="absolute bottom-0 left-0 right-0 h-20 bg-slate-800 border-t border-slate-700 p-2 flex flex-nowrap gap-1 overflow-x-auto no-scrollbar items-center z-40">
             <button id="tool-pan" onclick="setTool('pan')" class="ed-btn active-tool p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
                 <span class="text-xl">🖐️</span><span class="text-[10px] uppercase mt-1">Pan</span>
             </button>
@@ -117,7 +119,7 @@
             </button>
             <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
             <button onclick="setZoom(0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🔍+</span><span class="text-[10px] uppercase mt-1">Zoom In</span>
+                <span class="text-xl">🔍+</span><span class="text-[10px] uppercase mt-1">Zoom</span>
             </button>
             <button onclick="setZoom(-0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
                 <span class="text-xl">🔍-</span><span class="text-[10px] uppercase mt-1">Out</span>

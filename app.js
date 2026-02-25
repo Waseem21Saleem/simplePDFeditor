@@ -3,7 +3,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
 }
 
-// Helper: Safely load files across all browsers (Fix for Samsung Internet)
+// Helper: Safely load files across all browsers
 function readFileAsArrayBuffer(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -175,6 +175,7 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     
     try {
         showLoader('Loading PDF...');
+        // Fixed: Use standard FileReader for full Samsung Android support
         const arrayBuffer = await readFileAsArrayBuffer(file);
         pdfDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
         pageNum = 1; pageStates = {}; isDirty = false;
@@ -194,13 +195,14 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
 
 async function renderPage(num, autoFit = false) {
     const page = await pdfDoc.getPage(num);
+    // Fixed: Keep scale reasonable to prevent Android memory crashes
     const baseViewport = page.getViewport({ scale: 1.5 }); 
     
-    // Auto-fit calculation (Clamped for Desktop so it doesn't get huge)
+    // Fixed: Clamp Desktop Auto-Zoom so it doesn't get huge
     if (autoFit) { 
-        let availableWidth = window.innerWidth - 40;
-        availableWidth = Math.min(availableWidth, 900); // Prevent infinite desktop stretch
-        currentZoom = availableWidth / baseViewport.width; 
+        let availableWidth = document.getElementById('workspace').clientWidth - 40;
+        let scaleToFit = availableWidth / baseViewport.width;
+        currentZoom = Math.min(scaleToFit, 1.0); // Never zoom in past 100% natively on large screens
     }
 
     const tempCanvas = document.createElement('canvas');
@@ -208,8 +210,11 @@ async function renderPage(num, autoFit = false) {
     await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: baseViewport }).promise;
 
     canvas.clear(); canvas.setDimensions({ width: baseViewport.width, height: baseViewport.height });
-    fabric.Image.fromURL(tempCanvas.toDataURL(), (img) => {
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+    
+    // Fixed: Passing Canvas directly bypasses Android Base64 DataURL size limits
+    const img = new fabric.Image(tempCanvas);
+    canvas.setBackgroundImage(img, () => {
+        canvas.renderAll();
         if (pageStates[num]) canvas.loadFromJSON(pageStates[num], canvas.renderAll.bind(canvas));
         updateZoomDisplay(); 
     });
@@ -311,11 +316,12 @@ async function executeExport() {
                 await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport: viewport }).promise;
 
                 const staticCanvas = new fabric.StaticCanvas(null, { width: viewport.width, height: viewport.height });
-                await new Promise(r => fabric.Image.fromURL(tempCanvas.toDataURL(), img => {
+                await new Promise(r => {
+                    const img = new fabric.Image(tempCanvas);
                     staticCanvas.setBackgroundImage(img, () => {
                         if (pageStates[i]) staticCanvas.loadFromJSON(pageStates[i], () => { staticCanvas.renderAll(); r(); }); else r();
                     });
-                }));
+                });
 
                 let imgData = staticCanvas.toDataURL('image/jpeg', 0.8);
                 let orient = viewport.width > viewport.height ? 'l' : 'p';
