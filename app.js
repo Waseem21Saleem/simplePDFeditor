@@ -865,3 +865,32 @@ function triggerDownload(bytes, name) {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ─── Expose all functions to global scope ───
+// Required because the script loads with `defer` — inline onclick=""
+// handlers need window-level access to these functions.
+window.navTo              = navTo;
+window.attemptNavHome     = attemptNavHome;
+window.confirmNavHome     = confirmNavHome;
+window.closeModal         = closeModal;
+window.openModal          = openModal;
+window.openSaveModal      = openSaveModal;
+window.openExportModal    = openExportModal;
+window.executeExport      = executeExport;
+window.setTool            = setTool;
+window.setZoom            = setZoom;
+window.resetZoom          = resetZoom;
+window.changePage         = changePage;
+window.deleteSelected     = deleteSelected;
+window.duplicateSelected  = duplicateSelected;
+window.insertStamp        = insertStamp;
+window.openSignatureModal = openSignatureModal;
+window.clearSignature     = clearSignature;
+window.saveSignature      = saveSignature;
+window.handleImageUpload  = handleImageUpload;
+window.movePage           = movePage;
+window.deletePage         = deletePage;
+window.moveMergeFile      = moveMergeFile;
+window.removeMergeFile    = removeMergeFile;
+window.selectAllSplitPages= selectAllSplitPages;
+window.undo               = undo;
