@@ -103,7 +103,7 @@ function setTool(tool) {
     document.getElementById('tool-' + tool)?.classList.add('active-tool');
     
     canvas.isDrawingMode = (tool === 'pen' || tool === 'highlighter');
-    canvas.selection = (tool !== 'pan');
+    canvas.selection = false; // Fix: Stop Text/Pan tools from acting like multi-select boxes
     canvas.defaultCursor = tool === 'pan' ? 'grab' : (tool === 'text' ? 'text' : 'default');
     updateStyle();
 }
@@ -125,21 +125,28 @@ workspace.addEventListener('touchmove', (e) => {
 workspace.addEventListener('touchend', () => initialPinchDistance = null);
 
 canvas.on('mouse:down', function(opt) {
-    if (activeTool === 'pan' && !opt.e.touches || (opt.e.touches && opt.e.touches.length === 1)) {
-        isDragging = true;
-        canvas.defaultCursor = 'grabbing';
-        lastPosX = opt.e.clientX || opt.e.touches?.[0].clientX;
-        lastPosY = opt.e.clientY || opt.e.touches?.[0].clientY;
-    } else if (activeTool === 'text' && !opt.target) {
+    // BUG FIX: Isolated Text Tool Logic so mobile touches don't override it into Pan mode
+    if (activeTool === 'pan') {
+        if (!opt.e.touches || (opt.e.touches && opt.e.touches.length === 1)) {
+            isDragging = true;
+            canvas.defaultCursor = 'grabbing';
+            lastPosX = opt.e.clientX || opt.e.touches?.[0].clientX;
+            lastPosY = opt.e.clientY || opt.e.touches?.[0].clientY;
+        }
+    } else if (activeTool === 'text') {
+        if (opt.target && opt.target.type === 'i-text') return; // Clicked existing text to edit
+        
         let pointer = canvas.getPointer(opt.e);
         let textObj = new fabric.IText('Type here...', {
             left: pointer.x, top: pointer.y,
             fill: document.getElementById('colorPicker').value,
-            fontSize: parseInt(document.getElementById('sizePicker').value),
+            fontSize: parseInt(document.getElementById('sizePicker').value) || 20,
             fontFamily: document.getElementById('fontFamily').value || 'Arial'
         });
-        canvas.add(textObj); canvas.setActiveObject(textObj);
-        textObj.enterEditing(); textObj.selectAll();
+        canvas.add(textObj); 
+        canvas.setActiveObject(textObj);
+        textObj.enterEditing(); 
+        textObj.selectAll();
         setTool('pan'); 
     }
 });
@@ -150,9 +157,11 @@ canvas.on('mouse:move', function(opt) {
         let e = opt.e;
         let clientX = e.clientX || e.touches?.[0].clientX;
         let clientY = e.clientY || e.touches?.[0].clientY;
-        workspace.scrollLeft -= (clientX - lastPosX);
-        workspace.scrollTop -= (clientY - lastPosY);
-        lastPosX = clientX; lastPosY = clientY;
+        if (clientX !== undefined && clientY !== undefined) {
+            workspace.scrollLeft -= (clientX - lastPosX);
+            workspace.scrollTop -= (clientY - lastPosY);
+            lastPosX = clientX; lastPosY = clientY;
+        }
     }
 });
 canvas.on('mouse:up', () => { isDragging = false; if(activeTool === 'pan') canvas.defaultCursor = 'grab'; });
@@ -175,7 +184,6 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
     
     try {
         showLoader('Loading PDF...');
-        // Fixed: Use standard FileReader for full Samsung Android support
         const arrayBuffer = await readFileAsArrayBuffer(file);
         pdfDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
         pageNum = 1; pageStates = {}; isDirty = false;
@@ -195,14 +203,12 @@ document.getElementById('upload-pdf').addEventListener('change', async (e) => {
 
 async function renderPage(num, autoFit = false) {
     const page = await pdfDoc.getPage(num);
-    // Fixed: Keep scale reasonable to prevent Android memory crashes
     const baseViewport = page.getViewport({ scale: 1.5 }); 
     
-    // Fixed: Clamp Desktop Auto-Zoom so it doesn't get huge
     if (autoFit) { 
         let availableWidth = document.getElementById('workspace').clientWidth - 40;
         let scaleToFit = availableWidth / baseViewport.width;
-        currentZoom = Math.min(scaleToFit, 1.0); // Never zoom in past 100% natively on large screens
+        currentZoom = Math.min(scaleToFit, 1.0); // Never zoom in past 100% on large screens natively
     }
 
     const tempCanvas = document.createElement('canvas');
@@ -211,7 +217,6 @@ async function renderPage(num, autoFit = false) {
 
     canvas.clear(); canvas.setDimensions({ width: baseViewport.width, height: baseViewport.height });
     
-    // Fixed: Passing Canvas directly bypasses Android Base64 DataURL size limits
     const img = new fabric.Image(tempCanvas);
     canvas.setBackgroundImage(img, () => {
         canvas.renderAll();

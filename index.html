@@ -10,7 +10,7 @@
     
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
-    <link rel="manifest" href="./manifest.json?v=6">
+    <link rel="manifest" href="./manifest.json?v=7">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -220,6 +220,15 @@
                     <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Insert Signature</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="ios-install-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-end justify-center sm:items-center p-4 pb-10">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl mb-4">📲</div>
+            <h3 class="text-xl font-bold mb-2">Install App on Phone</h3>
+            <p class="text-slate-400 mb-6">Tap the <b>Share / Options</b> menu in your browser, then scroll down and select <b>"Add to Home Screen"</b> to install the app.</p>
+            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Got it</button>
         </div>
     </div>
 
