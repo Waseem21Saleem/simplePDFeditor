@@ -1,10 +1,10 @@
 {
-  "name": "Pro PDF Suite",
-  "short_name": "PDF Suite",
+  "name": "Folio — PDF Suite",
+  "short_name": "Folio",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1644/1644129.png",

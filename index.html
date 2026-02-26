@@ -1,244 +1,1207 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#0a0a0f">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Pro PDF Suite</title>
+    <title>Folio — PDF Suite</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
     
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1644/1644129.png">
-    <link rel="manifest" href="./manifest.json?v=7">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { slate: { 850: '#151e2e' } } } } }
-    </script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    
+
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .thumb-group .preview-box { 
-            display: none; position: fixed; z-index: 200; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            box-shadow: 0 20px 60px rgba(0,0,0,0.9); pointer-events: none; border-radius: 12px; overflow: hidden; background: white;
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --surface2: #17171f;
+            --surface3: #1e1e28;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.13);
+            --text: #f0f0f5;
+            --text-muted: #7070a0;
+            --text-dim: #40405a;
+            --accent: #6c63ff;
+            --accent-glow: rgba(108,99,255,0.25);
+            --accent2: #ff6b9d;
+            --accent3: #00d4aa;
+            --accent4: #ffb347;
+            --danger: #ff4757;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --font-display: 'Syne', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
         }
-        .thumb-group:hover .preview-box { display: block; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ─── Scrollbars ─── */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+        /* ─── Screens ─── */
+        .screen { display: none; flex: 1; min-height: 0; flex-direction: column; }
+        .screen.active { display: flex; }
+
+        /* ─── Home Screen ─── */
+        #home-screen {
+            overflow-y: auto;
+            align-items: center;
+            padding: 0 24px 40px;
+            background: var(--bg);
+        }
+
+        .home-hero {
+            width: 100%;
+            max-width: 900px;
+            padding: 52px 0 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .hero-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-mark {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 40px var(--accent-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-mark::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
+        }
+
+        .hero-wordmark {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .hero-wordmark span {
+            color: var(--accent);
+        }
+
+        .hero-tagline {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-top: 3px;
+        }
+
+        #install-btn {
+            background: var(--surface3);
+            border: 1px solid var(--border-strong);
+            color: var(--text);
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        #install-btn:hover { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        @media (min-width: 640px) { .tools-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        .tool-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 20px 24px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tool-card:nth-child(1)::before { background: radial-gradient(circle at 20% 20%, rgba(108,99,255,0.15) 0%, transparent 70%); }
+        .tool-card:nth-child(2)::before { background: radial-gradient(circle at 20% 20%, rgba(255,107,157,0.15) 0%, transparent 70%); }
+        .tool-card:nth-child(3)::before { background: radial-gradient(circle at 20% 20%, rgba(0,212,170,0.15) 0%, transparent 70%); }
+        .tool-card:nth-child(4)::before { background: radial-gradient(circle at 20% 20%, rgba(255,179,71,0.15) 0%, transparent 70%); }
+
+        .tool-card:hover { transform: translateY(-4px); border-color: var(--border-strong); }
+        .tool-card:hover::before { opacity: 1; }
+
+        .tool-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .tool-card:nth-child(1) .tool-icon { background: rgba(108,99,255,0.15); }
+        .tool-card:nth-child(2) .tool-icon { background: rgba(255,107,157,0.15); }
+        .tool-card:nth-child(3) .tool-icon { background: rgba(0,212,170,0.15); }
+        .tool-card:nth-child(4) .tool-icon { background: rgba(255,179,71,0.15); }
+
+        .tool-name {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .tool-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        .tool-arrow {
+            position: absolute;
+            bottom: 18px;
+            right: 18px;
+            font-size: 16px;
+            color: var(--text-dim);
+            transition: all 0.2s;
+        }
+
+        .tool-card:hover .tool-arrow { color: var(--text-muted); transform: translate(2px, -2px); }
+
+        /* ─── Recent files ─── */
+        .section-header {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 40px 0 16px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .divider {
+            width: 100%;
+            max-width: 900px;
+            height: 1px;
+            background: var(--border);
+            margin: 40px 0;
+        }
+
+        .feature-row {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 640px) { .feature-row { grid-template-columns: 1fr; } }
+
+        .feature-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-pill-icon { font-size: 20px; }
+
+        .feature-pill-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .feature-pill-text strong { display: block; font-size: 13px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
+
+        /* ─── Tool Header ─── */
+        #tool-header {
+            display: none;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            height: 56px;
+            padding: 0 16px;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        #tool-header.visible { display: flex; }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover { color: var(--text); border-color: var(--border-strong); }
+
+        #tool-title {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        #header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ─── Buttons ─── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn:disabled { opacity: 0.3; cursor: default; }
+
+        .btn-ghost {
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+
+        .btn-success {
+            background: var(--accent3);
+            color: #0a1a16;
+            font-weight: 600;
+        }
+        .btn-success:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+
+        .btn-danger {
+            background: rgba(255,71,87,0.15);
+            border: 1px solid rgba(255,71,87,0.3);
+            color: var(--danger);
+        }
+        .btn-danger:hover:not(:disabled) { background: rgba(255,71,87,0.25); }
+
+        /* ─── Page counter ─── */
+        .page-nav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 4px 6px;
+        }
+
+        .page-nav button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 14px;
+        }
+
+        .page-nav button:hover:not(:disabled) { background: var(--surface3); color: var(--text); }
+        .page-nav button:disabled { opacity: 0.3; cursor: default; }
+        .page-nav span { font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+
+        /* ─── Editor Screen ─── */
+        #editor-screen { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+
+        #prop-bar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 48px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            overflow-x: auto;
+            z-index: 40;
+            flex-shrink: 0;
+        }
+
+        .prop-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
+
+        .prop-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
+
+        #colorPicker {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 2px solid var(--border-strong);
+            background: none;
+            cursor: pointer;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        .prop-input {
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            outline: none;
+            font-family: var(--font-body);
+            transition: border-color 0.2s;
+        }
+
+        .prop-input:focus { border-color: var(--accent); }
+        .prop-input.w-14 { width: 56px; }
+
+        select.prop-input {
+            border-right: 8px solid transparent;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        #workspace {
+            position: absolute;
+            top: 48px;
+            bottom: 76px;
+            left: 0; right: 0;
+            overflow: auto;
+            background: #0d0d14;
+            padding: 20px;
+            z-index: 30;
+        }
+
+        #editor-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+
+        .placeholder-icon {
+            width: 72px;
+            height: 72px;
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        #canvas-wrapper {
+            display: none;
+            background: white;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            transform-origin: top left;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* ─── Toolbar ─── */
+        #toolbar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 76px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 0 12px;
+            overflow-x: auto;
+            z-index: 40;
+        }
+
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 56px;
+            flex-shrink: 0;
+            font-family: var(--font-body);
+        }
+
+        .tool-btn:hover { background: var(--surface3); color: var(--text); }
+        .tool-btn.active { background: rgba(108,99,255,0.15); color: var(--accent); outline: 1px solid rgba(108,99,255,0.4); }
+
+        .tool-btn .t-icon { font-size: 20px; line-height: 1; }
+        .tool-btn .t-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+
+        .toolbar-sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
+
+        /* ─── Organize ─── */
+        #organize-screen, #merge-screen, #split-screen {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .tool-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-strong);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--surface);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(108,99,255,0.05);
+        }
+
+        .upload-zone-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--surface3);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+        }
+
+        .upload-zone h3 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .upload-zone p { font-size: 13px; color: var(--text-muted); }
+
+        .page-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 24px auto 0;
+            padding-bottom: 20px;
+        }
+
+        .thumb-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .thumb-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+        .thumb-card.selected { border-color: var(--accent); background: rgba(108,99,255,0.08); }
+
+        .thumb-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+        }
+
+        .thumb-card.selected .thumb-badge { background: var(--accent3); color: #0a1a16; }
+
+        .thumb-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .thumb-ctrl-btn {
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .thumb-ctrl-btn:hover { color: var(--text); border-color: var(--border-strong); }
+        .thumb-ctrl-btn.del { border-color: rgba(255,71,87,0.2); color: var(--danger); }
+        .thumb-ctrl-btn.del:hover { background: rgba(255,71,87,0.1); border-color: var(--danger); }
+
+        .preview-popup {
+            display: none;
+            position: fixed;
+            z-index: 300;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            pointer-events: none;
+            max-width: 85vw;
+            max-height: 80vh;
+        }
+
+        .thumb-card:hover .preview-popup { display: block; }
+
+        /* ─── Merge list ─── */
+        .merge-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .merge-item:hover { border-color: var(--border-strong); }
+
+        .merge-item-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .merge-item-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(108,99,255,0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .merge-item-text {
+            min-width: 0;
+        }
+
+        .merge-item-text .fname {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .merge-item-text .fsize {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .merge-controls { display: flex; gap: 4px; flex-shrink: 0; }
+
+        /* ─── Modals ─── */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-backdrop.open { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 24px;
+            padding: 28px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+        }
+
+        .modal h3 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .modal p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        .form-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 500; }
+
+        .form-input {
+            width: 100%;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .form-input:focus { border-color: var(--accent); }
+
+        select.form-input {
+            border-right: 8px solid transparent;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        /* ─── Loader ─── */
+        #loader-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10,10,15,0.9);
+            backdrop-filter: blur(10px);
+            z-index: 400;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        #loader-overlay.visible { display: flex; }
+
+        .loader-ring {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 3px solid var(--border-strong);
+            border-top-color: var(--accent);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loader-text {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* ─── Signature ─── */
+        #sig-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed #ccc;
+            margin-bottom: 16px;
+        }
+
+        /* ─── Toast ─── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface3);
+            border: 1px solid var(--border-strong);
+            border-radius: 100px;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 500;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            white-space: nowrap;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ─── Keyboard shortcut badges ─── */
+        .kbd {
+            display: inline-block;
+            background: var(--surface3);
+            border: 1px solid var(--border-strong);
+            border-radius: 5px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-family: var(--font-body);
+            color: var(--text-muted);
+        }
+
+        /* ─── Scrollbar hide ─── */
+        .no-scroll::-webkit-scrollbar { display: none; }
+        .no-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ─── Animations ─── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-hero { animation: fadeUp 0.5s ease both; }
+        .tools-grid { animation: fadeUp 0.5s 0.1s ease both; }
+        .feature-row { animation: fadeUp 0.5s 0.2s ease both; }
+
+        /* ─── Color mode tag ─── */
+        .tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 100px;
+            font-weight: 600;
+        }
+
+        .tag-new { background: rgba(0,212,170,0.15); color: var(--accent3); }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 h-[100dvh] w-screen flex flex-col overflow-hidden font-sans">
+<body>
 
-    <div id="home-screen" class="screen flex flex-col flex-1 min-h-0 overflow-y-auto items-center p-6 w-full">
-        <div class="w-full max-w-4xl flex justify-between items-center mb-8 pt-4">
-            <h1 class="text-3xl font-bold text-blue-500 flex items-center gap-3">
-                <img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" alt="Logo" class="w-10 h-10 drop-shadow-md">
-                PDF Suite
-            </h1>
-            <button id="install-btn" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-colors flex items-center gap-2">
-                ⬇️ Install App
-            </button>
+<!-- ══════════════ HOME ══════════════ -->
+<div id="home-screen" class="screen active">
+    <div class="home-hero">
+        <div class="hero-logo">
+            <div class="logo-mark">📄</div>
+            <div>
+                <div class="hero-wordmark">Folio<span>.</span></div>
+                <div class="hero-tagline">PDF Suite — Edit, Sign, Organize</div>
+            </div>
         </div>
-        
-        <p class="text-slate-400 mb-10 text-center max-w-md">Your complete toolkit for editing, merging, organizing, and splitting PDF documents.</p>
+        <button id="install-btn">⬇ Install</button>
+    </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
-            <div onclick="navTo('editor')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
-                <div class="text-4xl">📝</div><div class="font-semibold text-center">Edit PDF</div><div class="text-xs text-slate-400 text-center">Draw, Type & Sign</div>
+    <div class="tools-grid">
+        <div class="tool-card" onclick="navTo('editor')">
+            <div class="tool-icon">✏️</div>
+            <div>
+                <div class="tool-name">Edit PDF</div>
+                <div class="tool-desc">Draw, annotate, type & sign documents</div>
             </div>
-            <div onclick="navTo('organize')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
-                <div class="text-4xl">✂️</div><div class="font-semibold text-center">Organize</div><div class="text-xs text-slate-400 text-center">Rearrange & Delete</div>
+            <div class="tool-arrow">↗</div>
+        </div>
+        <div class="tool-card" onclick="navTo('organize')">
+            <div class="tool-icon">🗂️</div>
+            <div>
+                <div class="tool-name">Organize</div>
+                <div class="tool-desc">Rearrange, rotate & delete pages</div>
             </div>
-            <div onclick="navTo('merge')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
-                <div class="text-4xl">🔗</div><div class="font-semibold text-center">Merge</div><div class="text-xs text-slate-400 text-center">Combine Multiple</div>
+            <div class="tool-arrow">↗</div>
+        </div>
+        <div class="tool-card" onclick="navTo('merge')">
+            <div class="tool-icon">🔗</div>
+            <div>
+                <div class="tool-name">Merge</div>
+                <div class="tool-desc">Combine multiple PDFs into one</div>
             </div>
-            <div onclick="navTo('split')" class="bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md">
-                <div class="text-4xl">🔪</div><div class="font-semibold text-center">Split</div><div class="text-xs text-slate-400 text-center">Extract Pages</div>
+            <div class="tool-arrow">↗</div>
+        </div>
+        <div class="tool-card" onclick="navTo('split')">
+            <div class="tool-icon">✂️</div>
+            <div>
+                <div class="tool-name">Extract</div>
+                <div class="tool-desc">Pull specific pages from any PDF</div>
+            </div>
+            <div class="tool-arrow">↗</div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title" style="width:100%;max-width:900px;margin-bottom:16px;">Why Folio</div>
+    <div class="feature-row">
+        <div class="feature-pill">
+            <div class="feature-pill-icon">🔒</div>
+            <div class="feature-pill-text">
+                <strong>100% Private</strong>
+                Files never leave your device
+            </div>
+        </div>
+        <div class="feature-pill">
+            <div class="feature-pill-icon">⚡</div>
+            <div class="feature-pill-text">
+                <strong>Works Offline</strong>
+                Installable PWA, no internet needed
+            </div>
+        </div>
+        <div class="feature-pill">
+            <div class="feature-pill-icon">🆓</div>
+            <div class="feature-pill-text">
+                <strong>Completely Free</strong>
+                No sign-up, no watermarks ever
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ TOOL HEADER ══════════════ -->
+<div id="tool-header">
+    <button class="back-btn" onclick="attemptNavHome()">← <span>Back</span></button>
+    <div id="tool-title"></div>
+    <div id="header-actions"></div>
+</div>
+
+<!-- ══════════════ EDITOR ══════════════ -->
+<div id="editor-screen" class="screen">
+    <div id="prop-bar" class="no-scroll">
+        <span class="prop-label">Color</span>
+        <input type="color" id="colorPicker" value="#000000" onchange="updateStyle()">
+        <div class="prop-divider"></div>
+        <span class="prop-label">Size</span>
+        <input type="number" id="sizePicker" value="20" min="1" max="150" class="prop-input w-14" oninput="updateStyle()">
+        <div class="prop-divider"></div>
+        <span class="prop-label">Font</span>
+        <select id="fontFamily" class="prop-input" onchange="updateStyle()">
+            <option value="Arial">Sans</option>
+            <option value="Georgia">Serif</option>
+            <option value="Courier New">Mono</option>
+            <option value="Impact">Impact</option>
+        </select>
+        <div class="prop-divider"></div>
+        <button onclick="deleteSelected()" class="btn btn-danger" style="margin-left:auto;padding:5px 12px;font-size:12px;">🗑 Delete</button>
+        <button onclick="duplicateSelected()" class="btn btn-ghost" style="padding:5px 12px;font-size:12px;">⧉ Dup</button>
+    </div>
+
+    <div id="workspace" class="no-scroll">
+        <div id="editor-placeholder">
+            <div class="placeholder-icon">📄</div>
+            <div style="font-family: var(--font-display); font-size: 15px; font-weight: 600;">Open a PDF to start editing</div>
+            <div style="font-size: 13px; color: var(--text-dim);">Tap the Open button above</div>
+        </div>
+        <div id="scroll-spacer" style="position:relative;">
+            <div id="canvas-wrapper">
+                <canvas id="main-canvas"></canvas>
             </div>
         </div>
     </div>
 
-    <div id="tool-header" class="hidden bg-slate-800 border-b border-slate-700 h-14 px-3 flex justify-between items-center shrink-0 w-full shadow-md z-50">
-        <button onclick="attemptNavHome()" class="text-slate-300 hover:text-white flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg">🔙 <span class="hidden sm:inline">Home</span></button>
-        <div id="tool-title" class="font-semibold text-lg hidden sm:block">Tool Name</div>
-        <div class="flex items-center gap-2" id="header-actions"></div>
+    <div id="toolbar" class="no-scroll">
+        <button id="tool-pan" class="tool-btn active" onclick="setTool('pan')">
+            <span class="t-icon">🖐</span>
+            <span class="t-label">Pan</span>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button id="tool-text" class="tool-btn" onclick="setTool('text')">
+            <span class="t-icon">T</span>
+            <span class="t-label" style="font-size:9px;">Text</span>
+        </button>
+        <button id="tool-pen" class="tool-btn" onclick="setTool('pen')">
+            <span class="t-icon">🖊</span>
+            <span class="t-label">Pen</span>
+        </button>
+        <button id="tool-highlighter" class="tool-btn" onclick="setTool('highlighter')">
+            <span class="t-icon">🖍</span>
+            <span class="t-label">Mark</span>
+        </button>
+        <button id="tool-shape" class="tool-btn" onclick="setTool('shape')">
+            <span class="t-icon">▭</span>
+            <span class="t-label">Shape</span>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" onclick="openSignatureModal()">
+            <span class="t-icon">🖋</span>
+            <span class="t-label">Sign</span>
+        </button>
+        <button class="tool-btn" onclick="document.getElementById('upload-img').click()">
+            <span class="t-icon">🖼</span>
+            <span class="t-label">Image</span>
+        </button>
+        <button class="tool-btn" onclick="insertStamp()">
+            <span class="t-icon">📌</span>
+            <span class="t-label">Stamp</span>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" onclick="setZoom(0.15)">
+            <span class="t-icon" style="font-size:16px;">＋</span>
+            <span class="t-label">Zoom</span>
+        </button>
+        <button class="tool-btn" onclick="setZoom(-0.15)">
+            <span class="t-icon" style="font-size:16px;">－</span>
+            <span class="t-label">Out</span>
+        </button>
+        <button class="tool-btn" onclick="resetZoom()">
+            <span class="t-icon" style="font-size:13px;">FIT</span>
+            <span class="t-label">Reset</span>
+        </button>
+        <button class="tool-btn" onclick="undo()">
+            <span class="t-icon" style="font-size:16px;">↩</span>
+            <span class="t-label">Undo</span>
+        </button>
     </div>
+</div>
 
-    <div id="editor-screen" class="screen hidden relative flex-1 w-full overflow-hidden">
-        
-        <div id="prop-bar" class="absolute top-0 left-0 right-0 h-12 bg-slate-850 px-2 border-b border-slate-700 flex items-center gap-3 overflow-x-auto no-scrollbar z-40">
-            <input type="color" id="colorPicker" value="#000000" class="w-8 h-8 rounded cursor-pointer border-none bg-transparent shrink-0" onchange="updateStyle()">
-            <input type="number" id="sizePicker" value="20" min="1" max="150" class="w-16 bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none shrink-0" oninput="updateStyle()" placeholder="Size">
-            <select id="fontFamily" onchange="updateStyle()" class="bg-slate-700 text-white px-2 py-1 rounded text-sm outline-none border-r-8 border-transparent shrink-0">
-                <option value="Arial">Arial</option>
-                <option value="Times New Roman">Times</option>
-                <option value="Courier New">Courier</option>
-            </select>
-            <button onclick="deleteSelected()" class="ml-auto text-red-400 hover:text-red-300 p-1 text-xl shrink-0">🗑️</button>
+<!-- ══════════════ ORGANIZE ══════════════ -->
+<div id="organize-screen" class="screen">
+    <div class="tool-content">
+        <div id="org-upload-box" class="upload-zone" onclick="document.getElementById('upload-org').click()">
+            <div class="upload-zone-icon">🗂️</div>
+            <h3>Select a PDF to organize</h3>
+            <p>Drag to reorder pages, or delete unwanted ones</p>
         </div>
+        <div id="thumbnail-grid" class="page-grid"></div>
+    </div>
+</div>
 
-        <div id="workspace" class="absolute top-12 bottom-20 left-0 right-0 overflow-auto bg-slate-900 p-4 touch-pan-x touch-pan-y z-30">
-            <div id="editor-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none z-10">
-                <div class="text-5xl mb-4">📄</div>
-                <p>Open a PDF to start editing</p>
+<!-- ══════════════ MERGE ══════════════ -->
+<div id="merge-screen" class="screen">
+    <div class="tool-content">
+        <div class="upload-zone" onclick="document.getElementById('upload-merge').click()" style="max-width:480px;margin:0 auto 24px;">
+            <div class="upload-zone-icon">🔗</div>
+            <h3>Add PDFs to merge</h3>
+            <p>Select 2 or more files — they'll be combined in order</p>
+        </div>
+        <div id="merge-list" style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+</div>
+
+<!-- ══════════════ SPLIT / EXTRACT ══════════════ -->
+<div id="split-screen" class="screen">
+    <div class="tool-content">
+        <div id="split-upload-box" class="upload-zone" onclick="document.getElementById('upload-split').click()">
+            <div class="upload-zone-icon">✂️</div>
+            <h3>Select a PDF to extract from</h3>
+            <p>Tap pages to select them, then hit Extract</p>
+        </div>
+        <div id="split-grid" class="page-grid"></div>
+    </div>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Unsaved -->
+<div id="unsaved-modal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Unsaved changes</h3>
+        <p>Going back will discard your edits. Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('unsaved-modal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmNavHome()">Discard & Exit</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loader -->
+<div id="loader-overlay">
+    <div class="loader-ring"></div>
+    <div id="loader-text">Processing...</div>
+</div>
+
+<!-- Save modal (organize/merge/split) -->
+<div id="save-modal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Save as...</h3>
+        <label class="form-label">File name</label>
+        <input type="text" id="save-filename" class="form-input" value="Document">
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('save-modal')">Cancel</button>
+            <button id="save-confirm-btn" class="btn btn-success">💾 Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Export PDF/PNG modal -->
+<div id="export-modal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Export file</h3>
+        <label class="form-label">File name</label>
+        <input type="text" id="export-name" class="form-input" value="Edited_Document">
+        <label class="form-label">Format</label>
+        <select id="export-format" class="form-input">
+            <option value="pdf">PDF — All Pages</option>
+            <option value="png">PNG — Current Page Only</option>
+        </select>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('export-modal')">Cancel</button>
+            <button onclick="executeExport()" class="btn btn-success">⬇ Download</button>
+        </div>
+    </div>
+</div>
+
+<!-- Signature modal -->
+<div id="sig-modal" class="modal-backdrop">
+    <div class="modal" style="max-width:480px;">
+        <h3>Draw your signature</h3>
+        <div id="sig-container">
+            <canvas id="sig-canvas" width="420" height="160" style="width:100%;display:block;"></canvas>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <button class="btn btn-ghost" onclick="clearSignature()">Clear</button>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost" onclick="closeModal('sig-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSignature()">Insert</button>
             </div>
-            <div id="scroll-spacer" class="relative mx-auto transition-all duration-75">
-                <div id="canvas-wrapper" class="hidden bg-white shadow-2xl origin-top-left absolute top-0 left-0">
-                    <canvas id="main-canvas"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="absolute bottom-0 left-0 right-0 h-20 bg-slate-800 border-t border-slate-700 p-2 flex flex-nowrap gap-1 overflow-x-auto no-scrollbar items-center z-40">
-            <button id="tool-pan" onclick="setTool('pan')" class="ed-btn active-tool p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🖐️</span><span class="text-[10px] uppercase mt-1">Pan</span>
-            </button>
-            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
-            <button id="tool-text" onclick="setTool('text')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">📝</span><span class="text-[10px] uppercase mt-1">Text</span>
-            </button>
-            <button id="tool-pen" onclick="setTool('pen')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🖊️</span><span class="text-[10px] uppercase mt-1">Pen</span>
-            </button>
-            <button id="tool-highlighter" onclick="setTool('highlighter')" class="ed-btn p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🖍️</span><span class="text-[10px] uppercase mt-1">Mark</span>
-            </button>
-            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
-            <button onclick="openSignatureModal()" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🖋️</span><span class="text-[10px] uppercase mt-1">Sign</span>
-            </button>
-            <button onclick="document.getElementById('upload-img').click()" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🖼️</span><span class="text-[10px] uppercase mt-1">Image</span>
-            </button>
-            <div class="w-px h-8 bg-slate-700 mx-1 shrink-0"></div>
-            <button onclick="setZoom(0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🔍+</span><span class="text-[10px] uppercase mt-1">Zoom</span>
-            </button>
-            <button onclick="setZoom(-0.1)" class="p-2 flex flex-col items-center rounded-lg min-w-[60px] text-slate-300 hover:bg-slate-700 shrink-0">
-                <span class="text-xl">🔍-</span><span class="text-[10px] uppercase mt-1">Out</span>
-            </button>
         </div>
     </div>
+</div>
 
-    <div id="organize-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
-                <div id="org-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-org').click()">
-                    <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
-                    <h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">View, delete, and rearrange pages</p>
-                </div>
-                <div id="thumbnail-grid" class="flex flex-wrap gap-6 justify-center w-full mt-4"></div>
-            </div>
+<!-- Stamp modal -->
+<div id="stamp-modal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Insert Stamp</h3>
+        <p>Choose a stamp to insert onto the page</p>
+        <div id="stamp-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('stamp-modal')">Cancel</button>
         </div>
     </div>
+</div>
 
-    <div id="merge-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
-                <div class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors mb-6" onclick="document.getElementById('upload-merge').click()">
-                    <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
-                    <h3 class="text-xl font-bold mb-2">Tap to select multiple PDFs</h3><p class="text-slate-400">Select 2 or more files to combine them</p>
-                </div>
-                <div id="merge-list" class="w-full max-w-lg flex flex-col gap-3"></div>
-            </div>
+<!-- iOS install hint -->
+<div id="ios-install-modal" class="modal-backdrop">
+    <div class="modal">
+        <h3>Install Folio</h3>
+        <p>Tap the <strong>Share</strong> menu in your browser, then select <strong>"Add to Home Screen"</strong> to install the app.</p>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="closeModal('ios-install-modal')">Got it</button>
         </div>
     </div>
+</div>
 
-    <div id="split-screen" class="screen hidden flex-col flex-1 min-h-0 relative w-full overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-6 w-full h-full">
-            <div class="max-w-5xl mx-auto flex flex-col items-center pb-20">
-                <div id="split-upload-box" class="border-2 border-dashed border-slate-600 rounded-xl p-10 text-center w-full max-w-lg cursor-pointer hover:bg-slate-800 hover:border-blue-500 transition-colors" onclick="document.getElementById('upload-split').click()">
-                    <div class="mb-4 flex justify-center"><img src="https://cdn-icons-png.flaticon.com/512/1644/1644129.png" class="w-16 h-16 opacity-80"></div>
-                    <h3 class="text-xl font-bold mb-2">Tap to select a PDF</h3><p class="text-slate-400">Select specific pages to extract</p>
-                </div>
-                <div id="split-grid" class="flex flex-wrap gap-6 justify-center w-full mt-6"></div>
-            </div>
-        </div>
-    </div>
+<!-- Toast -->
+<div id="toast"></div>
 
-    <div id="unsaved-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-2 text-white">Unsaved Changes</h3>
-            <p class="text-slate-400 mb-6">Are you sure you want to go back? Any unsaved edits will be lost.</p>
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal('unsaved-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                <button onclick="confirmNavHome()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 font-medium shadow text-white">Discard & Exit</button>
-            </div>
-        </div>
-    </div>
+<!-- Hidden file inputs -->
+<input type="file" id="upload-pdf"   accept="application/pdf"                  class="hidden" style="display:none">
+<input type="file" id="upload-img"   accept="image/*"                           class="hidden" style="display:none" onchange="handleImageUpload(event)">
+<input type="file" id="upload-org"   accept="application/pdf"                  class="hidden" style="display:none">
+<input type="file" id="upload-merge" accept="application/pdf" multiple         class="hidden" style="display:none">
+<input type="file" id="upload-split" accept="application/pdf"                  class="hidden" style="display:none">
 
-    <div id="loader-overlay" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col items-center justify-center">
-        <div class="w-12 h-12 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
-        <div id="loader-text" class="mt-4 text-lg font-medium text-white text-center">Processing...</div>
-    </div>
-
-    <div id="save-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-4">Save File As</h3>
-            <input type="text" id="save-filename" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-6 focus:border-blue-500 outline-none" value="Document">
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal('save-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                <button id="save-confirm-btn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow text-white">Save Document</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="export-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-4 text-white">Export File</h3>
-            <label class="text-xs text-slate-400 uppercase tracking-wider">File Name</label>
-            <input type="text" id="export-name" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 mb-4 focus:border-blue-500 outline-none" value="Edited_Document">
-            <label class="text-xs text-slate-400 uppercase tracking-wider">Format</label>
-            <select id="export-format" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mt-1 mb-6 outline-none">
-                <option value="pdf">Save as PDF (All Pages)</option>
-                <option value="png">Save Page as Image (PNG)</option>
-            </select>
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal('export-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                <button onclick="executeExport()" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-medium shadow text-white">Download</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="sig-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <h3 class="text-xl font-bold mb-4 text-white">Sign Document</h3>
-            <div id="sig-container" class="bg-white rounded-lg border-2 border-dashed border-slate-400 overflow-hidden touch-none mb-4">
-                <canvas id="sig-canvas" width="350" height="150" class="w-full"></canvas>
-            </div>
-            <div class="flex justify-between items-center">
-                <button onclick="clearSignature()" class="text-slate-400 hover:text-white px-2 py-1">Clear</button>
-                <div class="flex gap-2">
-                    <button onclick="closeModal('sig-modal')" class="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
-                    <button onclick="saveSignature()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Insert Signature</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ios-install-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[150] flex items-end justify-center sm:items-center p-4 pb-10">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
-            <div class="text-4xl mb-4">📲</div>
-            <h3 class="text-xl font-bold mb-2">Install App on Phone</h3>
-            <p class="text-slate-400 mb-6">Tap the <b>Share / Options</b> menu in your browser, then scroll down and select <b>"Add to Home Screen"</b> to install the app.</p>
-            <button onclick="closeModal('ios-install-modal')" class="w-full px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium shadow text-white">Got it</button>
-        </div>
-    </div>
-
-    <input type="file" id="upload-pdf" accept="application/pdf" class="hidden">
-    <input type="file" id="upload-img" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-    <input type="file" id="upload-org" accept="application/pdf" class="hidden">
-    <input type="file" id="upload-merge" accept="application/pdf" multiple class="hidden">
-    <input type="file" id="upload-split" accept="application/pdf" class="hidden">
-
-    <style> .active-tool { background: rgba(59, 130, 246, 0.2); color: #60a5fa; outline: 1px solid #3b82f6; } </style>
-    <script src="./app.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
